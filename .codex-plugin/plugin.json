@@ -20,7 +20,7 @@
   "interface": {
     "displayName": "Article To Truth",
     "shortDescription": "中文文章去模板化、AI 味评测与改写技能。",
-    "longDescription": "Article To Truth 用中文原生 pattern 帮助智能体评测、改写和生成更真实、具体、可信的中文文章与文案，覆盖公众号、小红书、营销文案、短视频脚本、产品介绍、报告和故事等场景。",
+    "longDescription": "Article To Truth 用中文原生 pattern 帮助智能体评测、改写和生成更真实、具体、可信的中文文章与文案，覆盖公众号、小红书、营销文案、短视频脚本、产品介绍、报告和故事等场景，并提供 truth-score 与 truth-rewrite 两个轻量入口。",
     "developerName": "kuschzzp",
     "category": "Productivity",
     "capabilities": [
@@ -28,6 +28,8 @@
     ],
     "websiteURL": "https://github.com/kuschzzp/article-to-truth",
     "defaultPrompt": [
+      "用 truth-score 给这段文案打 AI 味分。",
+      "用 truth-rewrite 把这篇 AI 初稿改得更自然，不要编造案例。",
       "用 article-to-truth 给这段文案打 AI 味分。",
       "把这篇 AI 初稿改得更像人写，不要编造案例。",
       "按我的样稿风格改写这段中文文案。"

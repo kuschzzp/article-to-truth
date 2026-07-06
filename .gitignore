@@ -26,6 +26,8 @@ coverage/
 tmp/
 temp/
 .cache/
+.agents/
+skills-lock.json
 *-workspace/
 evals/output/
 
