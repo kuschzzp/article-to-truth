@@ -1,7 +1,7 @@
 {
   "name": "article-to-truth",
   "version": "0.1.0",
-  "description": "三个可独立安装的中文真实感写作、AI 味评测和改写 Skill。",
+  "description": "一个覆盖中文真实感写作、AI 味评测和自然化改写的综合 Skill。",
   "author": {
     "name": "kuschzzp",
     "url": "https://github.com/kuschzzp"
@@ -19,8 +19,8 @@
   "skills": "./skills/",
   "interface": {
     "displayName": "Article To Truth",
-    "shortDescription": "三个独立的中文真实感写作、评分与改写 Skill。",
-    "longDescription": "Article To Truth 提供三个可独立安装的 Skill：article-to-truth 处理原创、复合任务和作者风格校准，truth-score 输出真实感评分、AI 味风险与问题定位，truth-rewrite 只做已有文本的通用去模板化改写。三者使用一致的中文原生 pattern，并各自携带运行所需文件。",
+    "shortDescription": "中文真实感写作、评分与改写综合 Skill。",
+    "longDescription": "Article To Truth 通过一个 Skill 处理中文原创、真实感评分、AI 味风险定位、自然化改写、先评后改和作者风格校准。它使用 44 个中文原生 pattern，并根据用户的自然语言目标选择内部工作流。",
     "developerName": "kuschzzp",
     "category": "Productivity",
     "capabilities": [
@@ -28,8 +28,8 @@
     ],
     "websiteURL": "https://github.com/kuschzzp/article-to-truth",
     "defaultPrompt": [
-      "用 truth-score 给这段文案打 AI 味分。",
-      "用 truth-rewrite 把这篇 AI 初稿改得更自然，不要编造案例。",
+      "用 article-to-truth 给这段文案做真实感评分，只指出问题。",
+      "用 article-to-truth 把这篇 AI 初稿改得更自然，不要编造案例。",
       "用 article-to-truth 写一篇发生在县城旧书店里的短篇小说。",
       "用 article-to-truth 先评测这篇稿子，再改写并给终稿复评。",
       "用 article-to-truth 按我的样稿风格改写这段中文文案。"

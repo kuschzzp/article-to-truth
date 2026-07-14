@@ -5,7 +5,8 @@ import { dirname, join, resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 
 const repositoryRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..");
-const skillNames = new Set(["article-to-truth", "truth-score", "truth-rewrite"]);
+const skillNames = new Set(["article-to-truth"]);
+const routingSelections = new Set([...skillNames, "none"]);
 const assertionTypes = new Set([
   "contains",
   "not_contains",
@@ -15,6 +16,10 @@ const assertionTypes = new Set([
   "not_regex",
   "ordered_contains",
   "preserves_terms",
+  "preserves_claims",
+  "same_number_set",
+  "same_date_set",
+  "no_new_numbers",
   "score_range",
   "min_length",
   "max_length",
@@ -39,16 +44,60 @@ function requireStringArray(value, label) {
   value.forEach((item, index) => requireString(item, `${label}[${index}]`));
 }
 
+function requireStringOrArray(value, label) {
+  if (typeof value === "string") requireString(value, label);
+  else requireStringArray(value, label);
+}
+
 function requireNonNegativeInteger(value, label) {
   if (!Number.isInteger(value) || value < 0) {
     throw new Error(`${label} must be a non-negative integer`);
   }
 }
 
+function validateScope(scope, label) {
+  if (scope === undefined) return;
+  requireObject(scope, label);
+  requireStringOrArray(scope.start, `${label}.start`);
+  if (scope.end !== undefined) requireStringOrArray(scope.end, `${label}.end`);
+  if (scope.allow_missing_start !== undefined && typeof scope.allow_missing_start !== "boolean") {
+    throw new Error(`${label}.allow_missing_start must be a boolean`);
+  }
+}
+
+function validateClaims(claims, label) {
+  if (!Array.isArray(claims) || claims.length === 0) {
+    throw new Error(`${label} must be a non-empty array`);
+  }
+  claims.forEach((claim, index) => {
+    const claimLabel = `${label}[${index}]`;
+    requireObject(claim, claimLabel);
+    requireString(claim.description, `${claimLabel}.description`);
+    const hasTerms = claim.terms !== undefined;
+    const hasTermGroups = claim.term_groups !== undefined;
+    if (hasTerms === hasTermGroups) {
+      throw new Error(`${claimLabel} must contain terms or term_groups, but not both`);
+    }
+    if (hasTerms) requireStringArray(claim.terms, `${claimLabel}.terms`);
+    else {
+      if (!Array.isArray(claim.term_groups) || claim.term_groups.length === 0) {
+        throw new Error(`${claimLabel}.term_groups must be a non-empty array`);
+      }
+      claim.term_groups.forEach((group, groupIndex) =>
+        requireStringArray(group, `${claimLabel}.term_groups[${groupIndex}]`),
+      );
+    }
+  });
+}
+
 function validateAssertion(assertion, label) {
   requireObject(assertion, label);
   requireString(assertion.type, `${label}.type`);
   requireString(assertion.description, `${label}.description`);
+  if (assertion.critical !== undefined && typeof assertion.critical !== "boolean") {
+    throw new Error(`${label}.critical must be a boolean`);
+  }
+  validateScope(assertion.scope, `${label}.scope`);
 
   if (!assertionTypes.has(assertion.type)) {
     throw new Error(`${label} has unknown assertion type: ${assertion.type}`);
@@ -66,6 +115,14 @@ function validateAssertion(assertion, label) {
       break;
     case "preserves_terms":
       requireStringArray(assertion.terms, `${label}.terms`);
+      break;
+    case "preserves_claims":
+      validateClaims(assertion.claims, `${label}.claims`);
+      break;
+    case "same_number_set":
+    case "same_date_set":
+    case "no_new_numbers":
+      requireStringArray(assertion.values, `${label}.values`);
       break;
     case "regex":
     case "not_regex": {
@@ -172,10 +229,15 @@ export function validateRoutingSuite(suite) {
     requireString(routeCase.id, `${label}.id`);
     requireString(routeCase.query, `${label}.query`);
     requireString(routeCase.reason, `${label}.reason`);
-    if (!skillNames.has(routeCase.expected_skill)) {
+    if (!routingSelections.has(routeCase.expected_skill)) {
       throw new Error(`${label} has unknown expected_skill: ${routeCase.expected_skill}`);
     }
-    requireStringArray(routeCase.excluded_skills, `${label}.excluded_skills`);
+    if (!Array.isArray(routeCase.excluded_skills)) {
+      throw new Error(`${label}.excluded_skills must be an array`);
+    }
+    routeCase.excluded_skills.forEach((name, excludedIndex) =>
+      requireString(name, `${label}.excluded_skills[${excludedIndex}]`),
+    );
     if (routeCase.excluded_skills.includes(routeCase.expected_skill)) {
       throw new Error(`${label}.excluded_skills contains expected_skill`);
     }
@@ -199,29 +261,82 @@ function escapeRegex(value) {
   return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
+function getScopedText(output, assertion) {
+  if (!assertion.scope) return { text: output, error: null };
+  const starts = Array.isArray(assertion.scope.start) ? assertion.scope.start : [assertion.scope.start];
+  const startMatches = starts
+    .map((marker) => ({ marker, index: output.indexOf(marker) }))
+    .filter((match) => match.index !== -1)
+    .sort((left, right) => left.index - right.index);
+  if (startMatches.length === 0 && !assertion.scope.allow_missing_start) {
+    return { text: "", error: `scope start not found: ${starts.join(" | ")}` };
+  }
+  const contentStart = startMatches.length === 0
+    ? 0
+    : startMatches[0].index + startMatches[0].marker.length;
+  const ends = assertion.scope.end === undefined
+    ? []
+    : Array.isArray(assertion.scope.end) ? assertion.scope.end : [assertion.scope.end];
+  const endMatches = ends
+    .map((marker) => output.indexOf(marker, contentStart))
+    .filter((index) => index !== -1);
+  const contentEnd = endMatches.length === 0 ? output.length : Math.min(...endMatches);
+  return { text: output.slice(contentStart, contentEnd), error: null };
+}
+
+function normalizeNumber(value) {
+  const hasPercent = value.endsWith("%");
+  const numeric = value.replaceAll(",", "").replace(/%$/u, "");
+  const normalized = Number(numeric);
+  return Number.isFinite(normalized) ? `${normalized}${hasPercent ? "%" : ""}` : value;
+}
+
+function extractNumberSet(value) {
+  const matches = value.match(/(?:\d{1,3}(?:,\d{3})+|\d+)(?:\.\d+)?%?/gu) ?? [];
+  return new Set(matches.map(normalizeNumber));
+}
+
+function extractDateSet(value) {
+  const dates = new Set();
+  const pattern = /(\d{4})\s*[年\-/]\s*(\d{1,2})\s*[月\-/]\s*(\d{1,2})\s*日?/gu;
+  for (const match of value.matchAll(pattern)) {
+    dates.add(`${Number(match[1])}-${Number(match[2])}-${Number(match[3])}`);
+  }
+  return dates;
+}
+
+function compareSets(actual, expected) {
+  const missing = [...expected].filter((value) => !actual.has(value));
+  const extra = [...actual].filter((value) => !expected.has(value));
+  return { missing, extra };
+}
+
 function evaluateAssertion(assertion, output) {
+  const scope = getScopedText(output, assertion);
+  if (scope.error) return { passed: false, message: scope.error };
+  const checkedOutput = scope.text;
   switch (assertion.type) {
     case "contains":
       return {
-        passed: output.includes(assertion.value),
+        passed: checkedOutput.includes(assertion.value),
         message: `expected output to contain ${JSON.stringify(assertion.value)}`,
       };
     case "not_contains":
       return {
-        passed: !output.includes(assertion.value),
+        passed: !checkedOutput.includes(assertion.value),
         message: `expected output not to contain ${JSON.stringify(assertion.value)}`,
       };
     case "contains_any": {
-      const passed = assertion.values.some((value) => output.includes(value));
+      const passed = assertion.values.some((value) => checkedOutput.includes(value));
       return { passed, message: `expected one of: ${assertion.values.join(", ")}` };
     }
     case "not_contains_any": {
-      const found = assertion.values.filter((value) => output.includes(value));
+      const found = assertion.values.filter((value) => checkedOutput.includes(value));
       return { passed: found.length === 0, message: `unexpected values: ${found.join(", ")}` };
     }
     case "regex":
     case "not_regex": {
-      const matches = countRegexMatches(output, assertion);
+      const matches = countRegexMatches(checkedOutput, assertion);
       const minimum = assertion.min_matches ?? (assertion.type === "regex" ? 1 : 0);
       const maximum = assertion.max_matches ?? (assertion.type === "not_regex" ? 0 : Number.POSITIVE_INFINITY);
       return {
@@ -233,7 +348,7 @@ function evaluateAssertion(assertion, output) {
       let cursor = -1;
       let missing = null;
       for (const value of assertion.values) {
-        cursor = output.indexOf(value, cursor + 1);
+        cursor = checkedOutput.indexOf(value, cursor + 1);
         if (cursor === -1) {
           missing = value;
           break;
@@ -245,12 +360,50 @@ function evaluateAssertion(assertion, output) {
       };
     }
     case "preserves_terms": {
-      const missing = assertion.terms.filter((term) => !output.includes(term));
+      const missing = assertion.terms.filter((term) => !checkedOutput.includes(term));
       return { passed: missing.length === 0, message: `missing terms: ${missing.join(", ")}` };
+    }
+    case "preserves_claims": {
+      const missing = assertion.claims
+        .map((claim) => ({
+          description: claim.description,
+          terms: (claim.term_groups ?? claim.terms.map((term) => [term]))
+            .filter((group) => !group.some((term) => checkedOutput.includes(term)))
+            .map((group) => group.join(" | ")),
+        }))
+        .filter((claim) => claim.terms.length > 0);
+      return {
+        passed: missing.length === 0,
+        message: missing.length === 0
+          ? "all claims preserved"
+          : `missing claims: ${missing.map((claim) => `${claim.description} [${claim.terms.join(", ")}]`).join("; ")}`,
+      };
+    }
+    case "same_number_set":
+    case "no_new_numbers": {
+      const actual = extractNumberSet(checkedOutput);
+      const expected = new Set(assertion.values.map(normalizeNumber));
+      const { missing, extra } = compareSets(actual, expected);
+      const passed = assertion.type === "same_number_set"
+        ? missing.length === 0 && extra.length === 0
+        : extra.length === 0;
+      return {
+        passed,
+        message: `number set missing [${missing.join(", ")}], extra [${extra.join(", ")}]`,
+      };
+    }
+    case "same_date_set": {
+      const actual = extractDateSet(checkedOutput);
+      const expected = new Set(assertion.values.flatMap((value) => [...extractDateSet(value)]));
+      const { missing, extra } = compareSets(actual, expected);
+      return {
+        passed: missing.length === 0 && extra.length === 0,
+        message: `date set missing [${missing.join(", ")}], extra [${extra.join(", ")}]`,
+      };
     }
     case "score_range": {
       const label = assertion.label ?? "真实感评分：";
-      const match = output.match(new RegExp(`${escapeRegex(label)}\\s*(\\d{1,3})\\s*\\/\\s*100`, "u"));
+      const match = checkedOutput.match(new RegExp(`${escapeRegex(label)}\\s*(\\d{1,3})\\s*\\/\\s*100`, "u"));
       if (!match) return { passed: false, message: `score not found after ${label}` };
       const score = Number(match[1]);
       return {
@@ -259,11 +412,11 @@ function evaluateAssertion(assertion, output) {
       };
     }
     case "min_length": {
-      const length = [...output].length;
+      const length = [...checkedOutput].length;
       return { passed: length >= assertion.value, message: `length ${length} is below ${assertion.value}` };
     }
     case "max_length": {
-      const length = [...output].length;
+      const length = [...checkedOutput].length;
       return { passed: length <= assertion.value, message: `length ${length} exceeds ${assertion.value}` };
     }
   }
@@ -272,7 +425,12 @@ function evaluateAssertion(assertion, output) {
 export function evaluateOutput(evalCase, output) {
   const outcomes = evalCase.assertions.map((assertion) => {
     const result = evaluateAssertion(assertion, output);
-    return { ...result, type: assertion.type, description: assertion.description };
+    return {
+      ...result,
+      type: assertion.type,
+      description: assertion.description,
+      critical: assertion.critical === true,
+    };
   });
   const failures = outcomes.filter((outcome) => !outcome.passed);
 
@@ -282,6 +440,7 @@ export function evaluateOutput(evalCase, output) {
     passed: failures.length === 0,
     passedAssertions: outcomes.length - failures.length,
     totalAssertions: outcomes.length,
+    outcomes,
     failures,
   };
 }
@@ -308,7 +467,7 @@ function validateRoutingResults(resultsDocument, routeIds, runsPerCase) {
     }
     selections.forEach((selection, selectionIndex) => {
       requireString(selection, `${label}.selected_skills[${selectionIndex}]`);
-      if (!skillNames.has(selection) && selection !== "none") {
+      if (!routingSelections.has(selection)) {
         throw new Error(`${label} has unknown selected skill: ${selection}`);
       }
     });

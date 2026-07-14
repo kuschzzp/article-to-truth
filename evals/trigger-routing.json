@@ -7,92 +7,211 @@
       "id": "generate-novel",
       "query": "帮我写一篇小说",
       "expected_skill": "article-to-truth",
-      "excluded_skills": ["truth-score", "truth-rewrite"],
-      "reason": "从零虚构创作由综合 Skill 处理。"
+      "excluded_skills": [],
+      "reason": "从零虚构创作属于中文真实感写作。"
     },
     {
       "id": "score-only",
       "query": "看看这段公众号开头 AI 味重不重，只评分不要改",
-      "expected_skill": "truth-score",
-      "excluded_skills": ["article-to-truth", "truth-rewrite"],
-      "reason": "仅评测已有文本。"
+      "expected_skill": "article-to-truth",
+      "excluded_skills": [],
+      "reason": "仅评测是综合 Skill 的内部模式。"
     },
     {
       "id": "rewrite-only",
       "query": "把这段产品介绍改得自然一点，不要增加事实",
-      "expected_skill": "truth-rewrite",
-      "excluded_skills": ["article-to-truth", "truth-score"],
-      "reason": "仅通用改写已有文本。"
+      "expected_skill": "article-to-truth",
+      "excluded_skills": [],
+      "reason": "仅改写是综合 Skill 的内部模式。"
     },
     {
       "id": "score-then-rewrite",
       "query": "先给这篇文章打分，再按问题重写一版",
       "expected_skill": "article-to-truth",
-      "excluded_skills": ["truth-score", "truth-rewrite"],
-      "reason": "评测加改写属于复合任务。"
+      "excluded_skills": [],
+      "reason": "评测加改写属于综合写作任务。"
     },
     {
       "id": "rewrite-then-rescore",
       "query": "把这段文案改自然，最后再给终稿评分",
       "expected_skill": "article-to-truth",
-      "excluded_skills": ["truth-score", "truth-rewrite"],
-      "reason": "改写后复评需要组合两套流程。"
+      "excluded_skills": [],
+      "reason": "改写后复评由一个 Skill 串联完成。"
     },
     {
       "id": "voice-calibration",
       "query": "参考我的三篇旧文，把这篇初稿改成我的语气",
       "expected_skill": "article-to-truth",
-      "excluded_skills": ["truth-score", "truth-rewrite"],
-      "reason": "作者样稿分析和声音校准由综合 Skill 处理。"
+      "excluded_skills": [],
+      "reason": "作者样稿分析和声音校准属于综合写作。"
     },
     {
       "id": "writing-sop",
       "query": "给团队制定一份公众号去 AI 味审稿 SOP 和验收标准",
       "expected_skill": "article-to-truth",
-      "excluded_skills": ["truth-score", "truth-rewrite"],
-      "reason": "规则、SOP 和验收标准属于综合任务。"
+      "excluded_skills": [],
+      "reason": "规则、SOP 和验收标准属于综合写作任务。"
     },
     {
-      "id": "explicit-score",
-      "query": "用 $truth-score 检测这段邮件，只指出问题",
-      "expected_skill": "truth-score",
-      "excluded_skills": ["article-to-truth", "truth-rewrite"],
-      "reason": "用户明确点名评分 Skill。"
+      "id": "score-natural-language",
+      "query": "帮我判断这封邮件的模板感，只指出问题",
+      "expected_skill": "article-to-truth",
+      "excluded_skills": [],
+      "reason": "自然语言评分请求由 Evaluation 模式处理。"
     },
     {
-      "id": "explicit-rewrite",
-      "query": "用 $truth-rewrite 改写这段产品说明，事实不要动",
-      "expected_skill": "truth-rewrite",
-      "excluded_skills": ["article-to-truth", "truth-score"],
-      "reason": "用户明确点名改写 Skill。"
+      "id": "rewrite-natural-language",
+      "query": "帮我把这段产品说明去掉 AI 味，事实不要动",
+      "expected_skill": "article-to-truth",
+      "excluded_skills": [],
+      "reason": "自然语言改写请求由 Rewrite 模式处理。"
     },
     {
       "id": "explicit-main",
       "query": "用 $article-to-truth 给这段话打分",
       "expected_skill": "article-to-truth",
-      "excluded_skills": ["truth-score", "truth-rewrite"],
-      "reason": "显式点名优先，即使任务范围较窄。"
+      "excluded_skills": [],
+      "reason": "用户明确点名唯一 Skill。"
     },
     {
       "id": "high-risk-score",
       "query": "只检查这段医疗科普有没有 AI 味和过度确定的表达，不要改写",
-      "expected_skill": "truth-score",
-      "excluded_skills": ["article-to-truth", "truth-rewrite"],
-      "reason": "仍是只评分任务，但需执行高风险边界检查。"
+      "expected_skill": "article-to-truth",
+      "excluded_skills": [],
+      "reason": "高风险文本评测仍属于综合 Skill，但需执行安全边界。"
     },
     {
       "id": "generate-video-script",
       "query": "从零写一个 45 秒产品短视频脚本，不要套话",
       "expected_skill": "article-to-truth",
-      "excluded_skills": ["truth-score", "truth-rewrite"],
-      "reason": "从零生成脚本由综合 Skill 处理。"
+      "excluded_skills": [],
+      "reason": "从零生成中文脚本属于真实感写作。"
     },
     {
       "id": "generate-report",
       "query": "根据这些会议纪要起草一份中文项目复盘报告",
       "expected_skill": "article-to-truth",
-      "excluded_skills": ["truth-score", "truth-rewrite"],
+      "excluded_skills": [],
       "reason": "从素材起草新报告属于生成任务。"
+    },
+    {
+      "id": "ambiguous-pr-polish",
+      "query": "这段话一股公关稿味，帮我收一收，事实别动",
+      "expected_skill": "article-to-truth",
+      "excluded_skills": [],
+      "reason": "没有直说去 AI 味，但目标是中文文案自然化改写。"
+    },
+    {
+      "id": "ambiguous-template-diagnosis",
+      "query": "圈出这篇稿子里最像模板的句子，先别重写",
+      "expected_skill": "article-to-truth",
+      "excluded_skills": [],
+      "reason": "模板感诊断属于 Evaluation 模式。"
+    },
+    {
+      "id": "rewrite-with-hard-limits",
+      "query": "保留 20 MB、30 天和最多 50 人这些限制，把发布说明改得能直接发",
+      "expected_skill": "article-to-truth",
+      "excluded_skills": [],
+      "reason": "带事实边界的中文自然化改写属于 Rewrite 模式。"
+    },
+    {
+      "id": "generate-chinese-email",
+      "query": "替我写一封中文道歉邮件，承认延期，但别写得太官腔",
+      "expected_skill": "article-to-truth",
+      "excluded_skills": [],
+      "reason": "从零起草中文邮件属于 Generation 模式。"
+    },
+    {
+      "id": "generate-announcement-from-facts",
+      "query": "根据下面的维护日期、接口范围和重试方式写一份中文系统公告",
+      "expected_skill": "article-to-truth",
+      "excluded_skills": [],
+      "reason": "根据事实材料起草中文公告属于 Generation 模式。"
+    },
+    {
+      "id": "unrelated-code-debugging",
+      "query": "帮我修复这个 React 组件的状态更新报错",
+      "expected_skill": "none",
+      "excluded_skills": ["article-to-truth"],
+      "reason": "代码调试不属于中文真实感写作任务。"
+    },
+    {
+      "id": "unrelated-weather",
+      "query": "查一下上海明天会不会下雨",
+      "expected_skill": "none",
+      "excluded_skills": ["article-to-truth"],
+      "reason": "天气查询不属于中文真实感写作任务。"
+    },
+    {
+      "id": "unrelated-translation-only",
+      "query": "把这份中文合同逐句翻译成英文，不要润色或改写",
+      "expected_skill": "none",
+      "excluded_skills": ["article-to-truth"],
+      "reason": "纯翻译且明确不要改写，不属于本 Skill。"
+    },
+    {
+      "id": "unrelated-summary-only",
+      "query": "把这篇中文项目报告摘要成 5 条要点，只提取原文信息",
+      "expected_skill": "none",
+      "excluded_skills": ["article-to-truth"],
+      "reason": "纯摘要提取不要求创作、评测或自然化改写。"
+    },
+    {
+      "id": "unrelated-data-extraction",
+      "query": "从这些发票截图里提取日期、金额和发票号，整理成表格",
+      "expected_skill": "none",
+      "excluded_skills": ["article-to-truth"],
+      "reason": "图像信息提取和表格整理不属于中文写作。"
+    },
+    {
+      "id": "unrelated-code-review",
+      "query": "审查这个 Node.js 脚本有没有资源泄漏，并直接修复",
+      "expected_skill": "none",
+      "excluded_skills": ["article-to-truth"],
+      "reason": "代码审查和修复不属于中文写作。"
+    },
+    {
+      "id": "unrelated-file-conversion",
+      "query": "把这份 Markdown 转成 PDF，保持现有文字不变",
+      "expected_skill": "none",
+      "excluded_skills": ["article-to-truth"],
+      "reason": "只做文件转换且不改文字，不属于本 Skill。"
+    },
+    {
+      "id": "unrelated-image-generation",
+      "query": "根据这篇文章生成一张 16:9 的封面图，不要改正文",
+      "expected_skill": "none",
+      "excluded_skills": ["article-to-truth"],
+      "reason": "只生成图像，不要求中文写作处理。"
+    },
+    {
+      "id": "unrelated-fact-lookup",
+      "query": "查一下 GPT-5.6 的官方上下文窗口和最新价格，附来源",
+      "expected_skill": "none",
+      "excluded_skills": ["article-to-truth"],
+      "reason": "事实查询和来源核验不属于中文真实感写作。"
+    },
+    {
+      "id": "unrelated-english-writing",
+      "query": "write a concise English launch email for our US customers",
+      "expected_skill": "none",
+      "excluded_skills": ["article-to-truth"],
+      "reason": "纯英文写作不在当前中文 Skill 的触发范围。"
+    },
+    {
+      "id": "unrelated-email-operation",
+      "query": "把收件箱里标题含 Release 的邮件都加星标并移到项目文件夹",
+      "expected_skill": "none",
+      "excluded_skills": ["article-to-truth"],
+      "reason": "邮件操作不涉及起草或改写。"
+    },
+    {
+      "id": "unrelated-layout-only",
+      "query": "正文一个字都别改，只把这篇公众号排版成适合发布的样式",
+      "expected_skill": "none",
+      "excluded_skills": ["article-to-truth"],
+      "reason": "纯排版且明确不改正文，不属于本 Skill。"
     }
   ]
 }

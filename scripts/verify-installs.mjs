@@ -9,7 +9,7 @@ import { fileURLToPath } from "node:url";
 const repositoryRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const skillsCliVersion = process.env.SKILLS_CLI_VERSION ?? "1.5.17";
 const npxCommand = process.platform === "win32" ? "npx.cmd" : "npx";
-const skillNames = ["article-to-truth", "truth-rewrite", "truth-score"];
+const skillNames = ["article-to-truth"];
 const requiredFiles = {
   "article-to-truth": [
     "SKILL.md",
@@ -19,18 +19,6 @@ const requiredFiles = {
     "references/process.md",
     "references/rubric.md",
     "references/voice-calibration.md",
-  ],
-  "truth-score": [
-    "SKILL.md",
-    "references/examples.md",
-    "references/patterns.md",
-    "references/rubric.md",
-  ],
-  "truth-rewrite": [
-    "SKILL.md",
-    "references/examples.md",
-    "references/patterns.md",
-    "references/process.md",
   ],
 };
 
@@ -61,7 +49,7 @@ function installSkills(projectRoot, selectedSkill, npmCacheRoot) {
   if (result.error) throw result.error;
   if (result.status !== 0) {
     throw new Error(
-      `skills install failed for ${selectedSkill ?? "default-all"}\n${result.stdout}\n${result.stderr}`,
+      `skills install failed for ${selectedSkill ?? "default"}\n${result.stdout}\n${result.stderr}`,
     );
   }
 }
@@ -102,17 +90,17 @@ try {
     await mkdir(projectRoot, { recursive: true });
     installSkills(projectRoot, skillName, npmCacheRoot);
     const installed = await listInstalledSkills(projectRoot);
-    assertInstalledSet(installed, [skillName], `individual install ${skillName}`);
+    assertInstalledSet(installed, [skillName], `explicit install ${skillName}`);
     await verifySkillFiles(projectRoot, skillName);
-    console.log(`PASS individual install: ${skillName}`);
+    console.log(`PASS explicit install: ${skillName}`);
   }
 
-  const allProjectRoot = join(temporaryRoot, "default-all");
-  await mkdir(allProjectRoot, { recursive: true });
-  installSkills(allProjectRoot, null, npmCacheRoot);
-  const installed = await listInstalledSkills(allProjectRoot);
+  const defaultProjectRoot = join(temporaryRoot, "default");
+  await mkdir(defaultProjectRoot, { recursive: true });
+  installSkills(defaultProjectRoot, null, npmCacheRoot);
+  const installed = await listInstalledSkills(defaultProjectRoot);
   assertInstalledSet(installed, skillNames, "default install");
-  for (const skillName of skillNames) await verifySkillFiles(allProjectRoot, skillName);
+  for (const skillName of skillNames) await verifySkillFiles(defaultProjectRoot, skillName);
   console.log(`PASS default install: ${installed.join(", ")}`);
 } finally {
   await rm(temporaryRoot, { recursive: true, force: true });

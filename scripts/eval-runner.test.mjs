@@ -11,7 +11,7 @@ import {
 test("evaluateOutput supports deterministic assertion types", () => {
   const evalCase = {
     id: 1,
-    target_skill: "truth-score",
+    target_skill: "article-to-truth",
     prompt: "评测这段文字",
     expected_output: "输出结构化评测",
     files: [],
@@ -53,7 +53,7 @@ test("evaluateOutput reports actionable assertion failures", () => {
   const result = evaluateOutput(
     {
       id: 2,
-      target_skill: "truth-rewrite",
+      target_skill: "article-to-truth",
       prompt: "改写",
       expected_output: "终稿",
       files: [],
@@ -72,7 +72,138 @@ test("evaluateOutput reports actionable assertion failures", () => {
   );
 });
 
-test("suite validators reject unknown skills and assertion types", () => {
+test("evaluateOutput protects scoped claims, dates, and numeric facts", () => {
+  const evalCase = {
+    id: 15,
+    target_skill: "article-to-truth",
+    prompt: "改写发布说明",
+    expected_output: "保留全部事实边界",
+    files: [],
+    assertions: [
+      {
+        type: "preserves_claims",
+        description: "保留容量与成员限制",
+        critical: true,
+        scope: { start: "终稿：", end: "主要改动：" },
+        claims: [
+          { description: "容量限制", terms: ["单文件", "最大", "20 MB"] },
+          { description: "成员限制", terms: ["每个工作区", "最多", "50 名成员"] },
+        ],
+      },
+      {
+        type: "same_number_set",
+        values: ["2026", "8", "1", "20", "30", "50"],
+        description: "数字集合不变",
+        critical: true,
+        scope: { start: "终稿：", end: "主要改动：" },
+      },
+      {
+        type: "same_date_set",
+        values: ["2026 年 8 月 1 日"],
+        description: "日期集合不变",
+        critical: true,
+        scope: { start: "终稿：", end: "主要改动：" },
+      },
+      {
+        type: "no_new_numbers",
+        values: ["2026", "8", "1", "20", "30", "50"],
+        description: "不增加数字",
+        critical: true,
+        scope: { start: "终稿：", end: "主要改动：" },
+      },
+    ],
+  };
+
+  const output = `终稿：
+FileGate 将于 2026 年 8 月 1 日更新。新版本支持单文件最大 20 MB，审核记录保留 30 天，每个工作区最多 50 名成员。
+
+主要改动：
+1. [L02] 删除宣传腔。`;
+
+  const result = evaluateOutput(evalCase, output);
+  assert.equal(result.passed, true);
+  assert.equal(result.outcomes.every((outcome) => outcome.critical), true);
+
+  const drifted = evaluateOutput(evalCase, output.replace("50 名成员", "60 名成员"));
+  assert.equal(drifted.passed, false);
+  assert.deepEqual(
+    drifted.failures.map((failure) => failure.type),
+    ["preserves_claims", "same_number_set", "no_new_numbers"],
+  );
+});
+
+test("scoped assertions fail clearly when the final section is missing", () => {
+  const result = evaluateOutput(
+    {
+      id: 16,
+      target_skill: "article-to-truth",
+      prompt: "改写",
+      expected_output: "终稿",
+      files: [],
+      assertions: [
+        {
+          type: "same_number_set",
+          values: ["20"],
+          description: "终稿保留数字",
+          scope: { start: "终稿：" },
+        },
+      ],
+    },
+    "改写完成，保留 20 MB。",
+  );
+
+  assert.equal(result.passed, false);
+  assert.match(result.failures[0].message, /scope start not found/);
+});
+
+test("scoped assertions accept heading-free drafts and equivalent claim phrases", () => {
+  const scope = {
+    start: ["终稿：", "改写稿："],
+    end: ["主要改动：", "改动说明：", "简短改动说明："],
+    allow_missing_start: true,
+  };
+  const result = evaluateOutput(
+    {
+      id: 17,
+      target_skill: "article-to-truth",
+      prompt: "改写",
+      expected_output: "保留事实并删除宣传腔",
+      files: [],
+      assertions: [
+        {
+          type: "preserves_claims",
+          description: "保留容量限制",
+          scope,
+          claims: [
+            {
+              description: "单文件容量",
+              term_groups: [["单文件", "单个文件"], ["20 MB"]],
+            },
+          ],
+        },
+        {
+          type: "same_number_set",
+          values: ["20"],
+          description: "数字集合不变",
+          scope,
+        },
+        {
+          type: "not_contains",
+          value: "行业领先",
+          description: "终稿删除宣传词",
+          scope,
+        },
+      ],
+    },
+    `新版本单个文件最大支持 20 MB。
+
+改动说明：删除“行业领先”等宣传词。`,
+  );
+
+  assert.equal(result.passed, true);
+});
+
+test("suite validators enforce the single-skill contract", () => {
   assert.throws(
     () =>
       validateEvalSuite({
@@ -80,15 +211,37 @@ test("suite validators reject unknown skills and assertion types", () => {
         evals: [
           {
             id: 1,
-            target_skill: "unknown-skill",
+            target_skill: "truth-score",
             prompt: "test",
             expected_output: "test",
             files: [],
-            assertions: [{ type: "mystery", description: "invalid" }],
+            assertions: [{ type: "contains", value: "test", description: "valid" }],
           },
         ],
       }),
     /unknown target_skill/,
+  );
+
+  assert.doesNotThrow(() =>
+    validateRoutingSuite({
+      suite: "routing",
+      cases: [
+        {
+          id: "score-only",
+          query: "只评分",
+          expected_skill: "article-to-truth",
+          excluded_skills: [],
+          reason: "评分是综合 Skill 的内部模式",
+        },
+        {
+          id: "unrelated-code",
+          query: "修复 React 报错",
+          expected_skill: "none",
+          excluded_skills: ["article-to-truth"],
+          reason: "与中文写作无关",
+        },
+      ],
+    }),
   );
 
   assert.throws(
@@ -102,26 +255,26 @@ test("evaluateRoutingResults compares every selected skill", () => {
     suite: "routing",
     cases: [
       {
-        id: "generate-novel",
-        query: "帮我写一篇小说",
-        expected_skill: "article-to-truth",
-        excluded_skills: ["truth-score", "truth-rewrite"],
-        reason: "原创任务",
-      },
-      {
         id: "score-only",
         query: "只评分",
-        expected_skill: "truth-score",
-        excluded_skills: ["article-to-truth", "truth-rewrite"],
+        expected_skill: "article-to-truth",
+        excluded_skills: [],
         reason: "评分任务",
+      },
+      {
+        id: "unrelated-code",
+        query: "修复 React 报错",
+        expected_skill: "none",
+        excluded_skills: ["article-to-truth"],
+        reason: "无关任务",
       },
     ],
   };
 
   const result = evaluateRoutingResults(routingSuite, {
     results: [
-      { id: "generate-novel", selected_skill: "article-to-truth" },
-      { id: "score-only", selected_skill: "truth-rewrite" },
+      { id: "score-only", selected_skill: "article-to-truth" },
+      { id: "unrelated-code", selected_skill: "article-to-truth" },
     ],
   });
 
@@ -131,11 +284,11 @@ test("evaluateRoutingResults compares every selected skill", () => {
   assert.equal(result.totalRuns, 2);
   assert.deepEqual(result.failures, [
     {
-      id: "score-only",
+      id: "unrelated-code",
       run: 1,
-      expectedSkill: "truth-score",
-      selectedSkill: "truth-rewrite",
-      message: "run 1: expected truth-score, got truth-rewrite",
+      expectedSkill: "none",
+      selectedSkill: "article-to-truth",
+      message: "run 1: expected none, got article-to-truth",
     },
   ]);
 });
@@ -147,18 +300,18 @@ test("evaluateRoutingResults measures repeated-run pass rates", () => {
     minimum_pass_rate: 0.8,
     cases: [
       {
-        id: "generate-novel",
-        query: "帮我写一篇小说",
-        expected_skill: "article-to-truth",
-        excluded_skills: ["truth-score", "truth-rewrite"],
-        reason: "原创任务",
-      },
-      {
         id: "score-only",
         query: "只评分",
-        expected_skill: "truth-score",
-        excluded_skills: ["article-to-truth", "truth-rewrite"],
+        expected_skill: "article-to-truth",
+        excluded_skills: [],
         reason: "评分任务",
+      },
+      {
+        id: "unrelated-code",
+        query: "修复 React 报错",
+        expected_skill: "none",
+        excluded_skills: ["article-to-truth"],
+        reason: "无关任务",
       },
     ],
   };
@@ -166,12 +319,12 @@ test("evaluateRoutingResults measures repeated-run pass rates", () => {
   const result = evaluateRoutingResults(routingSuite, {
     results: [
       {
-        id: "generate-novel",
-        selected_skills: ["article-to-truth", "article-to-truth", "truth-rewrite"],
+        id: "score-only",
+        selected_skills: ["article-to-truth", "article-to-truth", "none"],
       },
       {
-        id: "score-only",
-        selected_skills: ["truth-score", "truth-score", "truth-score"],
+        id: "unrelated-code",
+        selected_skills: ["none", "none", "none"],
       },
     ],
   });
