@@ -2,11 +2,11 @@
 
 # Article To Truth
 
-**中文文章与文案的 AI 味评分、去模板化改写和真实感写作技能。**
+**三个可独立安装的中文 AI 味评测、去模板化改写和真实感写作 Skill。**
 
 让 Agent 先守住事实、边界和作者意图，再处理语言自然度。
 
-[技能入口](./skills/article-to-truth/SKILL.md) · [评分入口](./skills/truth-score/SKILL.md) · [改写入口](./skills/truth-rewrite/SKILL.md) · [规则库](./skills/article-to-truth/references/patterns.md) · [测试集](./evals/evals.json)
+[综合写作](./skills/article-to-truth/SKILL.md) · [独立评分](./skills/truth-score/SKILL.md) · [独立改写](./skills/truth-rewrite/SKILL.md) · [规则库](./skills/article-to-truth/references/patterns.md) · [测试集](./evals/evals.json)
 
 [![Agent Skill](https://img.shields.io/badge/Agent%20Skill-article--to--truth-2563EB)](./skills/article-to-truth/SKILL.md)
 [![Skills](https://img.shields.io/badge/skills-3-111827)](./skills)
@@ -19,13 +19,13 @@
 
 ## 这是什么？
 
-Article To Truth 是一个面向智能体写作工具的中文写作技能，用于评测、改写和生成中文文章、公众号稿、营销文案、小红书笔记、短视频脚本、邮件、报告、故事和创意草稿。
+Article To Truth 是一组面向智能体写作工具的中文 Skill：`article-to-truth` 负责原创和复合任务，`truth-score` 负责只评分，`truth-rewrite` 负责只改写。三个 Skill 都能单独安装和运行，覆盖中文文章、公众号稿、营销文案、小红书笔记、短视频脚本、邮件、报告、故事和创意草稿。
 
 它不是“绕过检测器”的提示词。它的目标是让文本更真实、更具体、更可信：先保护事实、来源、数字、责任边界、作者意图和文体，再处理语言自然度、信息密度和表达节奏。
 
 技能内置 44 个中文原生 AI 味 pattern，覆盖内容、语言、结构、格式、机器人残留和误判保护。每次评测或改写都应该引用具体 pattern 编号，让用户知道问题来自哪里，而不是只得到一句“AI 味有点重”。
 
-本技能基于 [blader/humanizer](https://github.com/blader/humanizer) 的思路开发，并针对中文文章、中文互联网文体、公众号、小红书、营销文案、短视频脚本、产品介绍和中文 AI 味 pattern 做了本地化扩展。
+本项目基于 [blader/humanizer](https://github.com/blader/humanizer) 的思路开发，并针对中文文章、中文互联网文体、公众号、小红书、营销文案、短视频脚本、产品介绍和中文 AI 味 pattern 做了本地化扩展。
 
 ## 安装
 
@@ -59,10 +59,20 @@ npx skills add https://github.com/kuschzzp/article-to-truth -g -a codex -a claud
 npx skills add ./ -g -a codex
 ```
 
-默认会安装 3 个技能入口：`article-to-truth`、`truth-score`、`truth-rewrite`。如果只想安装完整技能本体，可以指定：
+仓库会被识别为 3 个独立 Skill：`article-to-truth`、`truth-score`、`truth-rewrite`。当前 `skills` CLI 在指定 `-a codex` 时会默认安装全部三个；如果其他版本或客户端进入交互选择，保持三个全选即可。
+
+需要无交互地安装全部三个 Skill 时，使用：
 
 ```bash
-npx skills add https://github.com/kuschzzp/article-to-truth -g --skill article-to-truth -a codex
+npx skills add https://github.com/kuschzzp/article-to-truth -g -a codex --skill '*' -y
+```
+
+只安装其中一个 Skill 时，使用：
+
+```bash
+npx skills add https://github.com/kuschzzp/article-to-truth -g -a codex --skill article-to-truth -y
+npx skills add https://github.com/kuschzzp/article-to-truth -g -a codex --skill truth-score -y
+npx skills add https://github.com/kuschzzp/article-to-truth -g -a codex --skill truth-rewrite -y
 ```
 
 ### 更新已安装的技能
@@ -89,18 +99,18 @@ npx skills remove truth-rewrite -g -a codex -y
 
 ## 快速开始
 
-安装后，可以这样让 Agent 使用这个技能：
+安装后，可以这样让 Agent 使用这些 Skill：
 
 ```text
 用 $truth-score 给这段文案打 AI 味分，并指出证据句。
 用 $truth-rewrite 把这段产品介绍去 AI 味，不要编造用户反馈。
-用 $article-to-truth 把这段公众号稿改得更像人写，但不要编造案例。
-用 article-to-truth 写一篇小红书笔记，避免通用营销腔。
+用 $article-to-truth 先评测这段公众号稿，再改写并给终稿复评。
+帮我写一篇发生在县城旧书店里的短篇小说。
 用 article-to-truth 写一个 45 秒短视频脚本，不要通用口播模板。
-按我的旧文风格，把这篇 AI 初稿改成更自然的版本。
+用 article-to-truth 按我的旧文风格，把这篇 AI 初稿改成更自然的版本。
 ```
 
-在支持技能斜杠调用的工具里，也可以直接调用轻量入口：
+在支持技能斜杠调用的工具里，也可以直接调用专项 Skill：
 
 ```text
 /truth-score 给这段文案打 AI 味分，并指出证据句。
@@ -114,7 +124,7 @@ Codex 的可选 prompt 模板不是裸 `/truth-score`，而是：
 /prompts:truth-rewrite 把这段产品介绍去 AI 味，不要编造用户反馈。
 ```
 
-技能会引导 Agent：
+三个 Skill 会按各自职责引导 Agent：
 
 1. 判断任务类型：评测、原创生成、改写、评测加改写、规则整理或作者声音校准。
 2. 按复合任务引用矩阵读取最小必要资料。
@@ -125,21 +135,23 @@ Codex 的可选 prompt 模板不是裸 `/truth-score`，而是：
 7. 避免编造个人经历、用户反馈、模糊权威和无来源数据。
 8. 根据用户需求交付干净终稿或结构化评测。
 
-## 技能入口
+## 三个独立 Skill
 
-| 入口 | 用途 | 默认输出 |
+| Skill | 用途 | 不处理 |
 |---|---|---|
-| `article-to-truth` | 完整写作、评测、改写、原创生成和作者风格校准 | 按任务自动选择流程 |
-| `truth-score` | 文案 AI 味评分 | 评分、pattern、证据句、扣分说明和修改优先级 |
-| `truth-rewrite` | 通用去 AI 味改写 | 命中 pattern、终稿和简短改动说明 |
+| `article-to-truth` | 从零创作、复合评测改写、作者风格校准、规则与 SOP | 自动路由时不争抢仅评分或仅通用改写 |
+| `truth-score` | 对已有文本做真实感评分、AI 味风险判断和问题定位 | 完整改写、从零创作 |
+| `truth-rewrite` | 对已有文本做通用去模板化改写 | 从零创作、完整评分、作者风格校准 |
 
-`truth-score` 和 `truth-rewrite` 只是轻量入口，规则仍然来自 `article-to-truth` 的 pattern、量表和改写流程，不维护第二套规则。
+公共 pattern 由仓库中的规范源统一维护，并同步到两个专项 Skill 的目录。安装后的三个 Skill 都只读取自身文件，不依赖兄弟目录。
+
+`truth-score` 的数值是**真实感评分**：`100` 表示更自然、更具体、更可信；同时单独输出“低、较低、中、高、很高”五档 AI 味风险，避免把高分误解为 AI 味更重。
 
 ## 工具支持
 
 | 工具 | 推荐调用 | 说明 |
 |---|---|---|
-| Codex | `$article-to-truth`、`$truth-score`、`$truth-rewrite` 或自然语言点名 | 技能安装后优先走技能入口。仓库另附可选 prompt 模板，调用形式是 `/prompts:truth-score` 和 `/prompts:truth-rewrite`。 |
+| Codex | `$article-to-truth`、`$truth-score`、`$truth-rewrite` 或自然语言点名 | Skill 安装后按任务边界路由。仓库另附可选 prompt 模板，调用形式是 `/prompts:truth-score` 和 `/prompts:truth-rewrite`。 |
 | Claude Code | `/article-to-truth`、`/truth-score`、`/truth-rewrite` | Claude Code 可以把技能作为斜杠技能调用，因此仓库不再提供重复的 `.claude/commands` 文件。 |
 | OpenCode | 技能调用，或使用仓库内 `.opencode/commands/*.md` | `.opencode/commands` 是 OpenCode 的原生命令文件，可按需复制到全局目录。 |
 
@@ -216,9 +228,22 @@ skills/article-to-truth/
     ├── rubric.md                    # 100 分制评测量表
     └── examples.md                  # 前后对比和触发示例
 skills/truth-score/
-└── SKILL.md                         # 文案 AI 味评分入口
+├── SKILL.md                         # 独立 AI 味评分 Skill
+└── references/
+    ├── patterns.md                  # 同步的 pattern 规则
+    ├── rubric.md                    # 同步的 100 分制量表
+    └── examples.md                  # 同步的评测示例
 skills/truth-rewrite/
-└── SKILL.md                         # 通用去 AI 味改写入口
+├── SKILL.md                         # 独立去模板化改写 Skill
+└── references/
+    ├── patterns.md                  # 同步的 pattern 规则
+    ├── process.md                   # 同步的改写流程
+    └── examples.md                  # 同步的改写示例
+scripts/
+├── sync-skill-references.mjs        # 同步并检查公共 reference
+├── eval-runner.mjs                  # 校验定义并评估已保存输出
+├── eval-runner.test.mjs             # 评测运行器单元测试
+└── verify-installs.mjs              # 验证单装与默认全量安装
 .opencode/commands/
 ├── truth-score.md                   # OpenCode 评分命令
 └── truth-rewrite.md                 # OpenCode 改写命令
@@ -226,7 +251,9 @@ integrations/codex/prompts/
 ├── truth-score.md                   # Codex 可选评分 prompt
 └── truth-rewrite.md                 # Codex 可选改写 prompt
 evals/
-└── evals.json                       # 固定测试提示集
+├── README.md                        # 评测运行说明
+├── evals.json                       # 三个 Skill 的行为测试集与 assertions
+└── trigger-routing.json             # 自然语言触发路由测试集
 .codex-plugin/
 └── plugin.json                      # Codex 插件元数据
 ```
@@ -239,16 +266,17 @@ evals/
 evals/evals.json
 ```
 
-它用于手动冒烟测试和后续正式评测，覆盖 AI 味评测、改写、评测加改写、作者风格校准、短视频脚本、产品介绍、轻量技能入口和可选命令入口。
+它用于手动冒烟测试和自动断言评测。每个测试项通过 `target_skill` 标明目标 Skill，并用 `assertions` 检查评分方向、风险等级、pattern、事实词保留、职责越界和输出顺序。自然语言触发边界另见 `evals/trigger-routing.json`。
 
 使用方式：
 
-1. 先校验 JSON 是否有效。
-2. 安装本技能后，逐条把 `prompt` 交给目标工具执行。
-3. 对照 `expected_output` 检查是否包含评分、pattern 编号、证据句、终稿、改动说明和安全边界。
-4. 如果输出编造数据、用户反馈、采访、来源或个人经历，视为失败。
+1. 运行 `node scripts/eval-runner.mjs --check` 校验定义。
+2. 安装 Skill 后，逐条把 `prompt` 交给目标工具执行。
+3. 将结果保存到 `evals/output/<id>.txt`。
+4. 运行 `node scripts/eval-runner.mjs --outputs evals/output` 执行确定性断言。
+5. 再人工检查文体质量、作者声音和是否编造经历、数据或来源。
 
-当前仓库只提供测试提示集，不内置自动评分脚本。
+完整用法和路由结果格式见 [评测指南](./evals/README.md)。
 
 ## 安全边界
 
@@ -268,6 +296,28 @@ find skills -maxdepth 3 -type f | sort
 
 ```bash
 python -m json.tool evals/evals.json
+python -m json.tool evals/trigger-routing.json
+```
+
+运行评测定义检查和单元测试：
+
+```bash
+node scripts/eval-runner.mjs --check
+node --test scripts/eval-runner.test.mjs
+```
+
+使用固定的 `skills@1.5.17` 验证三个 Skill 的单独安装和默认全量安装：
+
+```bash
+node scripts/verify-installs.mjs
+```
+
+该脚本只在系统临时目录中安装，结束时自动清理。仓库不配置 GitHub Actions，所有检查均由开发者在本地按需执行。
+
+检查专项 Skill 的 reference 是否与规范源一致：
+
+```bash
+node scripts/sync-skill-references.mjs --check
 ```
 
 查看本地可安装的技能：

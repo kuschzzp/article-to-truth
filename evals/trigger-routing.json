@@ -1,0 +1,98 @@
+{
+  "suite": "article-to-truth-skill-routing",
+  "runs_per_case": 3,
+  "minimum_pass_rate": 0.95,
+  "cases": [
+    {
+      "id": "generate-novel",
+      "query": "帮我写一篇小说",
+      "expected_skill": "article-to-truth",
+      "excluded_skills": ["truth-score", "truth-rewrite"],
+      "reason": "从零虚构创作由综合 Skill 处理。"
+    },
+    {
+      "id": "score-only",
+      "query": "看看这段公众号开头 AI 味重不重，只评分不要改",
+      "expected_skill": "truth-score",
+      "excluded_skills": ["article-to-truth", "truth-rewrite"],
+      "reason": "仅评测已有文本。"
+    },
+    {
+      "id": "rewrite-only",
+      "query": "把这段产品介绍改得自然一点，不要增加事实",
+      "expected_skill": "truth-rewrite",
+      "excluded_skills": ["article-to-truth", "truth-score"],
+      "reason": "仅通用改写已有文本。"
+    },
+    {
+      "id": "score-then-rewrite",
+      "query": "先给这篇文章打分，再按问题重写一版",
+      "expected_skill": "article-to-truth",
+      "excluded_skills": ["truth-score", "truth-rewrite"],
+      "reason": "评测加改写属于复合任务。"
+    },
+    {
+      "id": "rewrite-then-rescore",
+      "query": "把这段文案改自然，最后再给终稿评分",
+      "expected_skill": "article-to-truth",
+      "excluded_skills": ["truth-score", "truth-rewrite"],
+      "reason": "改写后复评需要组合两套流程。"
+    },
+    {
+      "id": "voice-calibration",
+      "query": "参考我的三篇旧文，把这篇初稿改成我的语气",
+      "expected_skill": "article-to-truth",
+      "excluded_skills": ["truth-score", "truth-rewrite"],
+      "reason": "作者样稿分析和声音校准由综合 Skill 处理。"
+    },
+    {
+      "id": "writing-sop",
+      "query": "给团队制定一份公众号去 AI 味审稿 SOP 和验收标准",
+      "expected_skill": "article-to-truth",
+      "excluded_skills": ["truth-score", "truth-rewrite"],
+      "reason": "规则、SOP 和验收标准属于综合任务。"
+    },
+    {
+      "id": "explicit-score",
+      "query": "用 $truth-score 检测这段邮件，只指出问题",
+      "expected_skill": "truth-score",
+      "excluded_skills": ["article-to-truth", "truth-rewrite"],
+      "reason": "用户明确点名评分 Skill。"
+    },
+    {
+      "id": "explicit-rewrite",
+      "query": "用 $truth-rewrite 改写这段产品说明，事实不要动",
+      "expected_skill": "truth-rewrite",
+      "excluded_skills": ["article-to-truth", "truth-score"],
+      "reason": "用户明确点名改写 Skill。"
+    },
+    {
+      "id": "explicit-main",
+      "query": "用 $article-to-truth 给这段话打分",
+      "expected_skill": "article-to-truth",
+      "excluded_skills": ["truth-score", "truth-rewrite"],
+      "reason": "显式点名优先，即使任务范围较窄。"
+    },
+    {
+      "id": "high-risk-score",
+      "query": "只检查这段医疗科普有没有 AI 味和过度确定的表达，不要改写",
+      "expected_skill": "truth-score",
+      "excluded_skills": ["article-to-truth", "truth-rewrite"],
+      "reason": "仍是只评分任务，但需执行高风险边界检查。"
+    },
+    {
+      "id": "generate-video-script",
+      "query": "从零写一个 45 秒产品短视频脚本，不要套话",
+      "expected_skill": "article-to-truth",
+      "excluded_skills": ["truth-score", "truth-rewrite"],
+      "reason": "从零生成脚本由综合 Skill 处理。"
+    },
+    {
+      "id": "generate-report",
+      "query": "根据这些会议纪要起草一份中文项目复盘报告",
+      "expected_skill": "article-to-truth",
+      "excluded_skills": ["truth-score", "truth-rewrite"],
+      "reason": "从素材起草新报告属于生成任务。"
+    }
+  ]
+}

@@ -3,74 +3,207 @@
   "evals": [
     {
       "id": 1,
-      "prompt": "用 article-to-truth 给下面这段文案打 AI 味分，指出 pattern 编号、证据句和修改优先级：\\n\\n在当今快速发展的数字时代，我们的智能写作平台正在赋能内容创作者，实现效率、质量与体验的全面提升。它不仅是一款工具，更是内容生产方式的重要变革。未来，我们将持续探索无限可能。",
-      "expected_output": "输出应包含 AI 味评分、至少 3 个 pattern 编号、对应证据句、扣分或问题说明、优先修改建议；不应只给笼统评价。",
+      "target_skill": "truth-score",
+      "prompt": "用 truth-score 给下面这段文案打 AI 味分，指出 pattern 编号、证据句和修改优先级：\\n\\n在当今快速发展的数字时代，我们的智能写作平台正在赋能内容创作者，实现效率、质量与体验的全面提升。它不仅是一款工具，更是内容生产方式的重要变革。未来，我们将持续探索无限可能。",
+      "expected_output": "输出应包含真实感评分、AI 味风险、至少 3 个 pattern 编号、对应证据句、扣分或问题说明、优先修改建议；不应只给笼统评价。",
+      "assertions": [
+        { "type": "contains", "value": "真实感评分：", "description": "输出真实感评分" },
+        { "type": "contains", "value": "越高越自然", "description": "明确分数方向" },
+        { "type": "contains", "value": "AI 味风险：", "description": "输出 AI 味风险等级" },
+        { "type": "score_range", "min": 0, "max": 69, "description": "明显模板文应落在低真实感区间" },
+        { "type": "regex", "pattern": "\\[(?:C|L|S|F|B|P)\\d{2}\\]", "min_matches": 3, "description": "至少列出 3 个 pattern" },
+        { "type": "contains", "value": "证据句", "description": "为问题提供证据句" },
+        { "type": "not_contains", "value": "终稿：", "description": "只评分时不输出完整改写" }
+      ],
       "files": []
     },
     {
       "id": 2,
-      "prompt": "用 article-to-truth 改写下面这段产品介绍，要求保留事实，不要增加用户反馈、案例或数据，只输出终稿和简短改动说明：\\n\\n智写 Flow 是一款面向内容团队的 AI 写作工具，通过全链路智能化能力赋能创作流程，帮助团队提升效率、优化体验、释放内容价值，打造从选题到分发的一体化闭环。",
+      "target_skill": "truth-rewrite",
+      "prompt": "用 truth-rewrite 改写下面这段产品介绍，要求保留事实，不要增加用户反馈、案例或数据，只输出终稿和简短改动说明：\\n\\n智写 Flow 是一款面向内容团队的 AI 写作工具，通过全链路智能化能力赋能创作流程，帮助团队提升效率、优化体验、释放内容价值，打造从选题到分发的一体化闭环。",
       "expected_output": "输出应保留产品名和面向内容团队的事实，删除或改写虚浮表达，补充具体动作和适用边界；不得伪造用户反馈、案例、数据。",
+      "assertions": [
+        { "type": "contains", "value": "终稿：", "description": "输出改写终稿" },
+        { "type": "contains", "value": "主要改动：", "description": "说明主要改动" },
+        { "type": "preserves_terms", "terms": ["智写 Flow", "内容团队", "AI 写作工具"], "description": "保留产品与定位事实" },
+        { "type": "regex", "pattern": "\\[(?:C|L|S|F|B|P)\\d{2}\\]", "min_matches": 1, "description": "至少引用 1 个 pattern" },
+        { "type": "not_contains", "value": "真实感评分：", "description": "只改写时不扩展为评分" },
+        { "type": "not_contains_any", "values": ["用户反馈显示", "数据显示", "客户案例表明"], "description": "不编造反馈、数据或案例" }
+      ],
       "files": []
     },
     {
       "id": 3,
-      "prompt": "用 article-to-truth 先评测再改写下面这段公众号开头，最后给出终稿评分：\\n\\n随着人工智能技术的不断发展，AI 编程助手正以前所未有的速度改变开发者的工作方式。它不仅提升了开发效率，也优化了团队协作体验，更为软件工程的未来打开了广阔想象空间。",
-      "expected_output": "输出应先给原文评分和 pattern 命中，再给终稿，最后给终稿评分和剩余风险；应体现评测 + 改写的复合流程。",
+      "target_skill": "article-to-truth",
+      "prompt": "用 article-to-truth 先评测再改写下面这段公众号开头，最后给出终稿真实感评分：\\n\\n随着人工智能技术的不断发展，AI 编程助手正以前所未有的速度改变开发者的工作方式。它不仅提升了开发效率，也优化了团队协作体验，更为软件工程的未来打开了广阔想象空间。",
+      "expected_output": "输出应先给原文真实感评分、AI 味风险和 pattern 命中，再给终稿，最后给终稿真实感评分、AI 味风险和剩余风险；应体现评测 + 改写的复合流程。",
+      "assertions": [
+        { "type": "ordered_contains", "values": ["原文真实感评分：", "终稿：", "终稿真实感评分："], "description": "按原文评测、改写、终稿复评的顺序输出" },
+        { "type": "contains", "value": "原文 AI 味风险：", "description": "输出原文风险等级" },
+        { "type": "contains", "value": "终稿 AI 味风险：", "description": "输出终稿风险等级" },
+        { "type": "regex", "pattern": "\\[(?:C|L|S|F|B|P)\\d{2}\\]", "min_matches": 3, "description": "用 pattern 解释复合处理" }
+      ],
       "files": []
     },
     {
       "id": 4,
+      "target_skill": "article-to-truth",
       "prompt": "用 article-to-truth 按下面的作者样稿风格，改写后面的 AI 初稿。不要复制样稿里的事实，只迁移节奏和语气。\\n\\n作者样稿：我不太相信那种一上来就喊改变行业的产品。真有用的东西，通常先解决一个很小的麻烦。比如少点复制粘贴，少点来回找文件，少点无效确认。\\n\\nAI 初稿：这款工具标志着团队协作进入全新阶段。它通过智能化能力全面提升效率，优化体验，并释放组织创新价值。",
       "expected_output": "输出应先给作者声音观察，再给改写稿；改写应迁移样稿的克制、短句、具体小麻烦视角，不应复制样稿事实或编造经历。",
+      "assertions": [
+        { "type": "contains_any", "values": ["作者声音观察", "声音观察", "风格观察"], "description": "先分析作者声音" },
+        { "type": "contains", "value": "终稿：", "description": "输出风格校准终稿" },
+        { "type": "not_contains_any", "values": ["复制粘贴", "来回找文件", "无效确认"], "description": "不复制样稿中的事实" },
+        { "type": "min_length", "value": 120, "description": "包含观察和完整改写" }
+      ],
       "files": []
     },
     {
       "id": 5,
+      "target_skill": "article-to-truth",
       "prompt": "用 article-to-truth 写一个 45 秒短视频脚本，主题是介绍一个能帮运营批量改标题的小工具。要求不要用“大家好今天给大家分享”，不要编造用户反馈，可以分画面、旁白、字幕。",
       "expected_output": "输出应体现短视频脚本结构，包含具体开头、画面/旁白/字幕或节奏点；应避免通用口播模板、伪用户反馈和夸张数据。",
+      "assertions": [
+        { "type": "contains_any", "values": ["画面", "镜头"], "description": "包含视觉编排" },
+        { "type": "contains_any", "values": ["旁白", "字幕"], "description": "包含口播或字幕编排" },
+        { "type": "not_contains_any", "values": ["大家好今天给大家分享", "大家好，今天给大家分享", "用户反馈显示", "数据显示"], "description": "避开通用口播和伪证据" },
+        { "type": "min_length", "value": 180, "description": "脚本内容足够支撑 45 秒" }
+      ],
       "files": []
     },
     {
       "id": 6,
+      "target_skill": "article-to-truth",
       "prompt": "用 article-to-truth 写一段官网产品介绍，产品叫 ReviewPin，功能是把文档、评论和修改记录放在同一个页面里，适合每周要审多篇稿子的内容团队。要求具体、克制、有边界，不要说行业领先。",
       "expected_output": "输出应说明产品是什么、谁用、解决哪一步问题和适用边界；应避免发布会腔、行业领先、全新升级、伪数据和万能价值判断。",
+      "assertions": [
+        { "type": "preserves_terms", "terms": ["ReviewPin", "内容团队", "文档", "评论", "修改记录"], "description": "保留产品功能和目标用户" },
+        { "type": "not_contains_any", "values": ["行业领先", "全新升级", "颠覆行业", "无限可能"], "description": "避开发布会和万能价值表达" },
+        { "type": "min_length", "value": 80, "description": "说明产品、用户和使用环节" }
+      ],
       "files": []
     },
     {
       "id": 7,
+      "target_skill": "truth-score",
       "prompt": "/truth-score 给下面这段文案打 AI 味分，只做评分和问题定位，不要直接改写：\\n\\n在数字化转型持续深入的今天，我们的平台通过智能化能力赋能企业内容生产，全面提升效率、体验与价值释放，帮助组织构建面向未来的增长闭环。",
-      "expected_output": "输出应只做评测，包含 AI 味评分、pattern 编号、证据句、扣分说明和修改优先级；不应直接给完整改写稿。",
+      "expected_output": "输出应只做评测，包含真实感评分、AI 味风险、pattern 编号、证据句、扣分说明和修改优先级；不应直接给完整改写稿。",
+      "assertions": [
+        { "type": "contains", "value": "真实感评分：", "description": "输出真实感评分" },
+        { "type": "contains", "value": "AI 味风险：", "description": "输出风险等级" },
+        { "type": "regex", "pattern": "\\[(?:C|L|S|F|B|P)\\d{2}\\]", "min_matches": 3, "description": "至少列出 3 个 pattern" },
+        { "type": "contains", "value": "证据句", "description": "提供证据句" },
+        { "type": "not_contains", "value": "终稿：", "description": "不输出完整改写" }
+      ],
       "files": []
     },
     {
       "id": 8,
+      "target_skill": "truth-rewrite",
       "prompt": "/truth-rewrite 把下面这段产品文案去 AI 味，保留事实，不要增加数据、案例或用户反馈：\\n\\nNotePilot 是一款面向知识工作者的智能笔记工具，依托先进 AI 能力打造高效、便捷、智能的一体化记录体验，助力用户释放知识管理价值。",
       "expected_output": "输出应包含主要命中 pattern、终稿和简短改动说明；应保留产品名、目标用户和智能笔记工具事实，删除或改写虚浮表达，不得编造数据、案例或用户反馈。",
+      "assertions": [
+        { "type": "contains", "value": "终稿：", "description": "输出改写终稿" },
+        { "type": "preserves_terms", "terms": ["NotePilot", "知识工作者", "智能笔记工具"], "description": "保留产品名、目标用户和产品类型" },
+        { "type": "regex", "pattern": "\\[(?:C|L|S|F|B|P)\\d{2}\\]", "min_matches": 1, "description": "至少引用 1 个 pattern" },
+        { "type": "not_contains", "value": "真实感评分：", "description": "只改写时不扩展为评分" },
+        { "type": "not_contains_any", "values": ["用户反馈显示", "数据显示", "客户案例表明"], "description": "不编造反馈、数据或案例" }
+      ],
       "files": []
     },
     {
       "id": 9,
+      "target_skill": "truth-score",
       "prompt": "/prompts:truth-score 给下面这段文案打 AI 味分，只做评分和问题定位，不要直接改写：\\n\\n我们的全新内容平台通过先进智能能力重塑创作体验，助力团队实现效率、质量和增长价值的全面跃升。",
-      "expected_output": "输出应按 Codex prompt 命令语义只做评测，包含 AI 味评分、pattern 编号、证据句、扣分说明和修改优先级；不应直接给完整改写稿。",
+      "expected_output": "输出应按 Codex prompt 命令语义只做评测，包含真实感评分、AI 味风险、pattern 编号、证据句、扣分说明和修改优先级；不应直接给完整改写稿。",
+      "assertions": [
+        { "type": "contains", "value": "真实感评分：", "description": "输出真实感评分" },
+        { "type": "contains", "value": "AI 味风险：", "description": "输出风险等级" },
+        { "type": "regex", "pattern": "\\[(?:C|L|S|F|B|P)\\d{2}\\]", "min_matches": 2, "description": "至少列出 2 个 pattern" },
+        { "type": "not_contains", "value": "终稿：", "description": "不输出完整改写" }
+      ],
       "files": []
     },
     {
       "id": 10,
+      "target_skill": "truth-rewrite",
       "prompt": "/prompts:truth-rewrite 把下面这段官网文案去 AI 味，保留事实，不要增加数据、案例或用户反馈：\\n\\nDraftHub 是一个面向编辑团队的文档协作工具，通过智能化流程优化能力打造高效协同体验，帮助团队释放内容生产价值。",
       "expected_output": "输出应按 Codex prompt 命令语义进行改写，包含主要命中 pattern、终稿和简短改动说明；应保留产品名、目标用户和文档协作工具事实，不得编造数据、案例或用户反馈。",
+      "assertions": [
+        { "type": "contains", "value": "终稿：", "description": "输出改写终稿" },
+        { "type": "preserves_terms", "terms": ["DraftHub", "编辑团队", "文档协作工具"], "description": "保留产品名、用户和产品类型" },
+        { "type": "regex", "pattern": "\\[(?:C|L|S|F|B|P)\\d{2}\\]", "min_matches": 1, "description": "至少引用 1 个 pattern" },
+        { "type": "not_contains", "value": "真实感评分：", "description": "不扩展为评分流程" },
+        { "type": "not_contains_any", "values": ["用户反馈显示", "数据显示", "客户案例表明"], "description": "不编造反馈、数据或案例" }
+      ],
       "files": []
     },
     {
       "id": 11,
+      "target_skill": "article-to-truth",
       "prompt": "用 article-to-truth 评测并轻改下面这段友情随笔。重点检查它是不是过于顺滑、过度完整、像满分作文；不要编造新的亲身经历：\\n\\n友情大概就是这样。它不总是热烈，也不总是贴近。它有时藏在一把递过来的伞里，藏在你难堪时对方替你岔开的话题里，藏在多年后见面仍然能自然坐下的一碗面里。人越长大，越知道能被人记得是一件很珍贵的事。友情没有那么多响亮的誓言，它更像一件穿久了的外套，也像旧街口的路灯，不刺眼，但你回头时，它总在那里。",
       "expected_output": "输出应识别 C09、C10、L09、L11、L12、S08、S09、S10、S11 或 S12 等过顺/作文式 pattern，说明具体证据；轻改时应减少概念解释、通用温情隐喻、过度中性和标准升华，不得编造新的个人经历或虚假细节。",
+      "assertions": [
+        { "type": "contains", "value": "终稿：", "description": "输出轻改终稿" },
+        { "type": "regex", "pattern": "\\[(?:C09|C10|L09|L11|L12|S08|S09|S10|S11|S12)\\]", "min_matches": 2, "description": "识别至少 2 个过顺或作文式 pattern" },
+        { "type": "preserves_terms", "terms": ["友情"], "description": "保持原主题" },
+        { "type": "not_contains_any", "values": ["我记得那天", "有一次我", "我的朋友曾经"], "description": "不补写新的亲身经历" }
+      ],
       "files": []
     },
     {
       "id": 12,
-      "prompt": "用 article-to-truth 评测下面这段作文样稿是否有 AI 味，并说明哪些地方不要过度润色。只做评测，不要改写：\\n\\n村口那条土路，一到夏天就被车轧得发白。那几年大家都种瓜，奶奶在饭桌上说，隔壁李婶偏不急，瓜秧没见她怎么管，倒先养了十几只鸡。我那时听不懂，只记得她家院里总有鸡叫，黄狗趴在门边，李婶蹲在那盆歪掉的月季前剪枝。后来收瓜的人先往她家地里去，我们几个小孩也蹭过去看，才知道鸡把虫子和草都吃了，肥也落在地里。奶奶拍了下腿，说了一句：鸡肥中不中，这不就中了。",
+      "target_skill": "truth-score",
+      "prompt": "用 truth-score 评测下面这段作文样稿是否有 AI 味，并说明哪些地方不要过度润色。只做评测，不要改写：\\n\\n村口那条土路，一到夏天就被车轧得发白。那几年大家都种瓜，奶奶在饭桌上说，隔壁李婶偏不急，瓜秧没见她怎么管，倒先养了十几只鸡。我那时听不懂，只记得她家院里总有鸡叫，黄狗趴在门边，李婶蹲在那盆歪掉的月季前剪枝。后来收瓜的人先往她家地里去，我们几个小孩也蹭过去看，才知道鸡把虫子和草都吃了，肥也落在地里。奶奶拍了下腿，说了一句：鸡肥中不中，这不就中了。",
       "expected_output": "输出应能识别这段文本具有人工叙事痕迹：局部视角、饭桌旁听、旁枝细节、普通词、方言口气和轻微不均匀；不应因为不够精致而判重 AI。应提到 P03 或 P02 的误判保护，并可指出若有修改，也只修影响理解的硬伤，不要把它润成教学总结或标准升华。",
+      "assertions": [
+        { "type": "contains", "value": "真实感评分：", "description": "输出真实感评分" },
+        { "type": "contains", "value": "AI 味风险：", "description": "输出风险等级" },
+        { "type": "score_range", "min": 85, "max": 100, "description": "人工叙事锚点应保持较高真实感评分" },
+        { "type": "regex", "pattern": "\\[P0[23]\\]", "min_matches": 1, "description": "引用 P02 或 P03 误判保护" },
+        { "type": "contains_any", "values": ["局部视角", "旁枝细节", "方言口气", "轻微不均匀"], "description": "识别人工叙事痕迹" },
+        { "type": "not_contains", "value": "终稿：", "description": "只评测时不改写" }
+      ],
+      "files": []
+    },
+    {
+      "id": 13,
+      "target_skill": "article-to-truth",
+      "prompt": "帮我写一篇发生在县城旧书店里的短篇小说，人物和情节可以虚构，不要写成标准励志故事。",
+      "expected_output": "输出应是一篇具有具体人物、场景、动作和局部细节的短篇小说；可以虚构人物与情节，但应避免标准励志转折、通用温情隐喻、空泛升华和模板式结尾。",
+      "assertions": [
+        { "type": "min_length", "value": 300, "description": "达到短篇小说的基本内容量" },
+        { "type": "not_contains_any", "values": ["只要坚持", "梦想终会实现", "未来可期", "人生的意义"], "description": "避免标准励志和空泛升华" },
+        { "type": "not_contains", "value": "真实感评分：", "description": "用户只要小说时不附评测" },
+        { "type": "not_contains", "value": "主要命中 pattern：", "description": "用户只要正文时不附内部检查" }
+      ],
+      "files": []
+    },
+    {
+      "id": 14,
+      "target_skill": "truth-score",
+      "prompt": "用 truth-score 评测下面这段技术通知，只做评测，不要因为它正式、简短、带数字就判成重 AI：\\n\\n系统维护通知：2026 年 7 月 20 日 02:00 至 03:00，文件上传 API 将暂停服务。已上传文件和下载接口不受影响。调用方无需修改配置；如果任务在维护窗口内失败，可在 03:00 后重试。",
+      "expected_output": "输出应给出较高真实感评分和低或较低 AI 味风险，引用 P01 正式写作保护，并说明时间、接口范围和处理建议都很具体；不应把正式通知体或数字本身当成 AI 味。",
+      "assertions": [
+        { "type": "contains", "value": "真实感评分：", "description": "输出真实感评分" },
+        { "type": "score_range", "min": 85, "max": 100, "description": "正式技术通知应保持较高真实感评分" },
+        { "type": "contains_any", "values": ["AI 味风险：低", "AI 味风险：较低"], "description": "风险等级为低或较低" },
+        { "type": "regex", "pattern": "\\[P01\\]", "min_matches": 1, "description": "引用 P01 正式写作保护" },
+        { "type": "not_contains", "value": "终稿：", "description": "只评测时不改写" }
+      ],
+      "files": []
+    },
+    {
+      "id": 15,
+      "target_skill": "truth-rewrite",
+      "prompt": "用 truth-rewrite 改写下面这段发布说明，去掉宣传腔，但所有数字、日期和限制都必须保留：\\n\\nFileGate 将于 2026 年 8 月 1 日迎来全新升级，以行业领先的智能化能力重塑文件审核体验。新版本支持单文件最大 20 MB，审核记录保留 30 天，每个工作区最多 50 名成员。",
+      "expected_output": "输出应保留 FileGate、2026 年 8 月 1 日、20 MB、30 天和 50 名成员，删除全新升级、行业领先、智能化重塑等宣传腔，不得改动限制或补充新数据。",
+      "assertions": [
+        { "type": "contains", "value": "终稿：", "description": "输出改写终稿" },
+        { "type": "preserves_terms", "terms": ["FileGate", "2026 年 8 月 1 日", "20 MB", "30 天", "50 名成员"], "description": "保留名称、日期、容量和数量限制" },
+        { "type": "not_contains_any", "values": ["全新升级", "行业领先", "重塑文件审核体验"], "description": "删除发布会式宣传表达" },
+        { "type": "not_contains", "value": "真实感评分：", "description": "只改写时不扩展为评分" }
+      ],
       "files": []
     }
   ]

@@ -1,25 +1,30 @@
 ---
 name: truth-rewrite
-description: 通用去 AI 味改写的快捷入口。用户明确输入 truth-rewrite、$truth-rewrite，或在支持技能斜杠调用的工具中输入 /truth-rewrite，或要求把中文文章、公众号、产品介绍、营销文案、小红书笔记、短视频脚本、邮件、报告改得更自然、更像人写、降低模板感、去 AI 味时使用。必须基于 article-to-truth 的 pattern 和改写流程，保留事实、范围、责任边界和作者意图；不得编造案例、数据、用户反馈、采访、来源或个人经历。
+description: 只对用户提供的已有中文文本做通用去 AI 味、去模板化和自然化改写。用户明确输入 truth-rewrite、$truth-rewrite、/truth-rewrite，或要求把中文文章、公众号、产品介绍、营销文案、小红书笔记、短视频脚本、邮件、报告改得更自然、更具体、更像人写时必须使用。保留事实、范围、责任边界、作者意图和原文用途，不编造数据、来源、案例、反馈或个人经历；不从零创作，也不执行完整评分流程。作者风格校准、先评测再改写或改写后复评等复合任务改用 article-to-truth。
 ---
 
 # Truth Rewrite
 
-Truth Rewrite 是 Article To Truth 的轻量改写入口。它负责把已有中文文本改得更真实、具体、可信、自然，不维护独立规则。
+Truth Rewrite 是一个独立改写 Skill，负责把已有中文文本改得更真实、具体、可信、自然。
+
+## Core Contract
+
+- 锁定原文事实、数字、来源、范围、责任边界、作者意图和文本用途。
+- 不编造数据、来源、采访、案例、用户反馈、个人经历或权威背书。
+- 不以规避检测器为目标；目标是减少空泛、模板化和不可信表达。
+- 不把正式文本强行改成松弛口语，也不把所有文体改成同一种声音。
+- 用 pattern 编号解释主要问题和改动，不执行完整的 100 分制评分流程。
 
 ## Load References
 
 读取以下资料：
 
-- `../article-to-truth/SKILL.md`
-- `../article-to-truth/references/patterns.md`
-- `../article-to-truth/references/process.md`
+- `references/patterns.md`
+- `references/process.md`
 
 按需追加：
 
-- 用户要求最终评分时，读取 `../article-to-truth/references/rubric.md`
-- 用户提供作者样稿或要求“像我写的”时，读取 `../article-to-truth/references/voice-calibration.md`
-- 用户要求示例或前后对比时，读取 `../article-to-truth/references/examples.md`
+- 用户要求示例或前后对比时，读取 `references/examples.md`
 
 ## Workflow
 
@@ -51,7 +56,7 @@ Truth Rewrite 是 Article To Truth 的轻量改写入口。它负责把已有中
 3. [S03] ...
 ```
 
-用户要求“严谨一点”“展示过程”“先评测再改写”时，再输出初改、复审和终稿评分。
+用户要求展示改写过程时，可以补充初改和复审，但不要扩展为完整评分流程。
 
 ## Boundaries
 
@@ -61,3 +66,4 @@ Truth Rewrite 是 Article To Truth 的轻量改写入口。它负责把已有中
 - 不用路灯、外套、港湾、雨伞、一碗面等通用温情隐喻替代真实细节。
 - 不把旁枝、普通词、必要重复和局部视角全部润掉。
 - 不删除原文的核心信息、CTA、立场和责任边界。
+- 作者风格校准、先评测再改写或改写后复评时，交由 `article-to-truth` 处理完整复合流程。
