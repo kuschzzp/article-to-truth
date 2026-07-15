@@ -182,6 +182,22 @@
         { "type": "not_contains", "value": "真实感评分：", "description": "用户只要小说时不附评测" },
         { "type": "not_contains", "value": "主要命中 pattern：", "description": "用户只要正文时不附内部检查" }
       ],
+      "quality_rubric": {
+        "minimum_total_score": 80,
+        "maximum_followup_gap": 12,
+        "maximum_dimension_improvement": 1,
+        "required_independent_reviewer_passes": 2,
+        "dimensions": [
+          { "id": "instruction_following", "criterion": "完整回应旧书店短篇小说请求，不泄露内部评测过程，也不改成评论或提纲", "weight": 1, "minimum_score": 4 },
+          { "id": "scene_grounding", "criterion": "县城旧书店的空间、物件和行动具有现场用途，不只是怀旧装饰", "weight": 2, "minimum_score": 3 },
+          { "id": "character_specificity", "criterion": "人物通过动作、对白、选择和有限认知成立，不只是证明主题的符号", "weight": 2, "minimum_score": 3 },
+          { "id": "narrative_organicness", "criterion": "情节由人物和因果推进，避免标准励志转折、整齐证据链和过度设计", "weight": 2, "minimum_score": 3 },
+          { "id": "language_naturalness", "criterion": "语言自然具体，句法和段落功能有变化，不过度精修或连续制造金句", "weight": 2, "minimum_score": 3 },
+          { "id": "continuity", "criterion": "人物、物件、时间、位置和因果状态前后一致，没有无解释复原或跳变", "weight": 2, "minimum_score": 4 },
+          { "id": "ending_restraint", "criterion": "结尾来自人物或事件，具体克制，不做空泛升华或万能人生总结", "weight": 1, "minimum_score": 3 }
+        ]
+      },
+      "followup_prompt": "去一下 AI 味，只输出修订后的正文。",
       "files": []
     },
     {
@@ -226,6 +242,68 @@
         { "type": "no_new_numbers", "values": ["2026", "7", "20", "02", "00", "03"], "description": "终稿不增加新数字", "critical": true, "scope": { "start": ["终稿：", "改写稿："], "end": ["主要改动：", "改动说明：", "简短改动说明："], "allow_missing_start": true } },
         { "type": "not_contains", "value": "真实感评分：", "description": "只改写时不扩展为评分" }
       ],
+      "files": []
+    },
+    {
+      "id": 17,
+      "target_skill": "article-to-truth",
+      "prompt": "帮我写一篇朱自清风格的散文，主题是孤独",
+      "expected_output": "输出应是一篇完成全文复审后的中文散文。风格参照应体现在细致观察、叙述距离、节奏和克制情绪中，而不是堆叠著名意象、老派词汇或年代道具；主题应从人物、动作和场景中出现，细节不能全部精准象征孤独，人物、物件和时间状态必须连续。默认只输出成稿，不展示内部检查。",
+      "assertions": [
+        { "type": "min_length", "value": 480, "description": "达到完整散文的基本内容量" },
+        { "type": "not_contains_any", "values": ["孤独不是", "孤独并不是", "有时孤独", "所谓孤独", "真正的孤独", "孤独就像", "人生的意义", "未来可期"], "description": "避免直接定义主题、伪金句和空泛升华" },
+        { "type": "not_contains", "value": "真实感评分：", "description": "用户只要散文时不附评测" },
+        { "type": "not_contains", "value": "主要命中 pattern：", "description": "不泄露内部 pattern 检查" },
+        { "type": "not_contains", "value": "写作处理：", "description": "默认只交付终改后的正文" }
+      ],
+      "quality_rubric": {
+        "minimum_total_score": 80,
+        "maximum_followup_gap": 12,
+        "maximum_dimension_improvement": 1,
+        "required_independent_reviewer_passes": 2,
+        "dimensions": [
+          { "id": "instruction_following", "criterion": "完成孤独主题散文并只交付成稿，不泄露内部草稿、评分或审计过程", "weight": 1, "minimum_score": 4 },
+          { "id": "scene_grounding", "criterion": "场景、人物和动作具有现场因果，不是抽象主题外包给一组气氛物件", "weight": 2, "minimum_score": 3 },
+          { "id": "detail_necessity", "criterion": "关键细节具有人物关系或因果用途，不是可随意替换的数字、旧物和孤独象征", "weight": 2, "minimum_score": 3 },
+          { "id": "structural_organicness", "criterion": "段落功能和情绪推进自然，不反复采用一个细节、一次感受、一句漂亮收束", "weight": 2, "minimum_score": 3 },
+          { "id": "language_naturalness", "criterion": "语言有普通句、停顿和局部判断，不过度精修、解释主题或连续制造金句", "weight": 2, "minimum_score": 3 },
+          { "id": "voice_and_style", "criterion": "风格参照体现在观察方式、叙述距离、节奏和克制上，不复制名句、著名意象或堆年代道具", "weight": 1, "minimum_score": 3 },
+          { "id": "continuity", "criterion": "人物、物件、时间、位置和因果状态前后一致，没有已经收起的物件无解释回到原处等硬矛盾", "weight": 2, "minimum_score": 4 },
+          { "id": "ending_restraint", "criterion": "结尾来自人物和场景，保留余味但不强行闭环、象征或总结人生道理", "weight": 1, "minimum_score": 3 }
+        ]
+      },
+      "followup_prompt": "去一下 AI 味，只输出修订后的正文。",
+      "files": []
+    },
+    {
+      "id": 18,
+      "target_skill": "article-to-truth",
+      "prompt": "写一篇关于搬到陌生城市后的第一顿晚饭的散文，不指定作者风格，只输出正文，不要写成励志文章。",
+      "expected_output": "输出应是一篇自然、具体的中文散文，从人物正在做的事和有限观察进入，不把陌生城市、独处或晚饭写成通用人生道理。细节应由现场和人物关系产生，允许自然的信息落差，但不能机械添加琐事制造人味；人物、物件和时间状态必须连续。",
+      "assertions": [
+        { "type": "min_length", "value": 400, "description": "达到完整散文的基本内容量" },
+        { "type": "not_contains_any", "values": ["只要勇敢", "新的开始", "未来可期", "人生的意义", "真正的成长"], "description": "避免励志转折和空泛人生总结" },
+        { "type": "not_contains", "value": "真实感评分：", "description": "用户只要散文时不附评测" },
+        { "type": "not_contains", "value": "主要命中 pattern：", "description": "不泄露内部 pattern 检查" },
+        { "type": "not_contains", "value": "写作处理：", "description": "默认只交付终改后的正文" }
+      ],
+      "quality_rubric": {
+        "minimum_total_score": 80,
+        "maximum_followup_gap": 12,
+        "maximum_dimension_improvement": 1,
+        "required_independent_reviewer_passes": 2,
+        "dimensions": [
+          { "id": "instruction_following", "criterion": "完成指定处境的散文并只输出正文，不改成励志故事或创作说明", "weight": 1, "minimum_score": 4 },
+          { "id": "scene_grounding", "criterion": "陌生城市和第一顿晚饭通过实际空间、动作与选择成立，不靠气氛词替代现场", "weight": 2, "minimum_score": 3 },
+          { "id": "detail_necessity", "criterion": "关键细节具有人物或因果用途，不是可以任意替换的孤独、温暖或怀旧装饰", "weight": 2, "minimum_score": 3 },
+          { "id": "structural_organicness", "criterion": "文章推进有自然轻重和信息落差，不按标准起承转合或逐段漂亮收束", "weight": 2, "minimum_score": 3 },
+          { "id": "language_naturalness", "criterion": "语言自然具体，不过度抒情、解释主题、精修句句或制造伪金句", "weight": 2, "minimum_score": 3 },
+          { "id": "voice_and_style", "criterion": "叙述声音稳定且有位置感，不依赖作家标签、网感口头禅或统一温柔滤镜", "weight": 1, "minimum_score": 3 },
+          { "id": "continuity", "criterion": "人物、食物、餐具、时间、位置和动作状态前后一致，没有硬矛盾", "weight": 2, "minimum_score": 4 },
+          { "id": "ending_restraint", "criterion": "结尾停在人物、动作或有限判断上，不升格为成长、希望或人生意义", "weight": 1, "minimum_score": 3 }
+        ]
+      },
+      "followup_prompt": "去一下 AI 味，只输出修订后的正文。",
       "files": []
     }
   ]

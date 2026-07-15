@@ -28,7 +28,7 @@ node scripts/eval-runner.mjs --check
 evals/output/1.txt
 evals/output/2.txt
 ...
-evals/output/16.txt
+evals/output/18.txt
 ```
 
 运行全部行为断言：
@@ -75,6 +75,36 @@ node scripts/eval-runner.mjs --outputs evals/output --case 1
 
 确定性断言只能发现结构、事实词和明显越界问题。文体质量、作者声音和细节可信度仍需人工或独立模型评审。
 
+文学生成用例还可以同时声明 `quality_rubric` 和 `followup_prompt`。量表包含 2-8 个评分维度，每个维度使用 1-5 分、权重和最低分；程序按权重换算百分制总分。`minimum_total_score` 是首次稿与后续稿都要达到的门槛，`maximum_followup_gap` 限制后续“去 AI 味”稿相对首次稿最多能提高多少分，`maximum_dimension_improvement` 进一步限制任一评分维度最多能提高几级；后续稿变差不会反过来判首次稿失败。`required_independent_reviewer_passes` 要求候选首次生成启用 multi-agent，并至少观察到相应数量的独立编辑等待；没有 reviewer 证据时，即使正文得分达标也不通过：
+
+```json
+{
+  "quality_rubric": {
+    "minimum_total_score": 80,
+    "maximum_followup_gap": 12,
+    "maximum_dimension_improvement": 1,
+    "required_independent_reviewer_passes": 2,
+    "dimensions": [
+      {
+        "id": "naturalness",
+        "criterion": "语言自然，不靠模板式金句推进",
+        "weight": 2,
+        "minimum_score": 3
+      },
+      {
+        "id": "continuity",
+        "criterion": "人物、物件和时间状态前后一致",
+        "weight": 2,
+        "minimum_score": 4
+      }
+    ]
+  },
+  "followup_prompt": "去一下 AI 味，只输出修订后的正文。"
+}
+```
+
+这两个字段必须一起出现。确定性运行器只验证配置；真实模型回归会生成后续稿，并在同一次匿名裁判中给首次稿与后续稿按维度评分，避免相减两个独立裁判产生标尺漂移。
+
 ## Evaluate Routing Results
 
 客户端执行 `trigger-routing.json` 中的 query 后，将实际选择结果保存为 JSON：
@@ -116,7 +146,7 @@ node scripts/eval-runner.mjs --routing-results evals/output/routing-results.json
 
 ## Run Real Model Regression
 
-真实回归默认选取 8 个锚点 case，每个 case 对当前候选版和 `fe14b7f` 已发布版各运行 2 次，并执行 3 轮批量路由探测：
+真实回归默认选取 10 个锚点 case，其中包含小说和指定作家风格散文。每个 case 对当前候选版和 `fe14b7f` 已发布版各运行 2 次，并执行 3 轮批量路由探测：
 
 ```bash
 node scripts/model-regression.mjs --smoke --model gpt-5.6-sol --reasoning-effort medium
@@ -135,7 +165,17 @@ node scripts/model-regression.mjs --help
 - `manifest.json`：模型、CLI 版本、候选 commit、基线引用、运行次数和门槛。
 - `<profile>/routing/`：结构化路由选择、JSONL 事件和 token 用量。
 - `<profile>/behavior/`：原始终稿、确定性断言和评分提取结果。
+- `candidate/followups/`：文学首次稿对应的“去 AI 味”后续稿、确定性断言和 Skill 激活证据。
+- `quality/`：首次稿与后续稿的匿名分维度评分、加权总分和质量差。
 - `candidate/diagnosis/`：隐式调用失败后的 `$article-to-truth` 显式复跑。
 - `summary.json` 与 `summary.md`：候选版、发布版、评分波动和质量门槛汇总。
 
 临时 Skill 工作区位于系统临时目录，脚本在成功、失败或中断后都会清理。持久化报告只写入已忽略的 `evals/output/`，不需要 GitHub Actions。
+
+只运行文学质量回归：
+
+```bash
+node scripts/model-regression.mjs --cases 13,17,18 --runs 3 --skip-routing --compare --model gpt-5.6-sol --reasoning-effort medium --baseline-ref <published-ref>
+```
+
+文学质量门槛要求首次稿、后续稿、后续稿确定性断言、自动 Skill 激活和独立 reviewer 激活全部通过，并且后续稿相对首次稿的正向提升不超过各用例的 `maximum_followup_gap`，任一维度的提升也不超过 `maximum_dimension_improvement`。总分门槛允许多个已达标维度从 4 精修到 5，单维度门槛仍会拦住连续性等关键项从明显失败跃升到优秀。这个方向性门槛专门识别“第一次明显不够好、用户再说一次去 AI 味才改善”的问题；首次稿本来更好时不误报。运行器只为声明了 reviewer 要求的候选文学用例启用 multi-agent；旧版基线、路由、后续追问和裁判仍保持关闭。独立模型评分是稳定的回归信号，不代表客观文学定论；正式判断仍应结合匿名输出人工阅读。

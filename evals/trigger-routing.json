@@ -130,6 +130,20 @@
       "reason": "根据事实材料起草中文公告属于 Generation 模式。"
     },
     {
+      "id": "generate-author-style-prose",
+      "query": "帮我写一篇朱自清风格的散文，主题是孤独",
+      "expected_skill": "article-to-truth",
+      "excluded_skills": [],
+      "reason": "指定作家风格的中文散文创作属于 Literary Generation 子模式。"
+    },
+    {
+      "id": "generate-literary-prose",
+      "query": "写一篇关于搬到陌生城市后的第一顿晚饭的散文，只输出正文，不要写成励志文章",
+      "expected_skill": "article-to-truth",
+      "excluded_skills": [],
+      "reason": "不指定作者的中文文学创作同样属于 Literary Generation 子模式。"
+    },
+    {
       "id": "unrelated-code-debugging",
       "query": "帮我修复这个 React 组件的状态更新报错",
       "expected_skill": "none",

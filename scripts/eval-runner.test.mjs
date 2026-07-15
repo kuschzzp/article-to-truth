@@ -250,6 +250,114 @@ test("suite validators enforce the single-skill contract", () => {
   );
 });
 
+test("eval suite validates literary quality rubrics and follow-up prompts", () => {
+  const validCase = {
+    id: 17,
+    target_skill: "article-to-truth",
+    prompt: "写一篇散文",
+    expected_output: "自然、连贯的散文",
+    files: [],
+    assertions: [{ type: "min_length", value: 200, description: "正文完整" }],
+    quality_rubric: {
+      minimum_total_score: 80,
+      maximum_followup_gap: 12,
+      maximum_dimension_improvement: 1,
+      required_independent_reviewer_passes: 2,
+      dimensions: [
+        {
+          id: "naturalness",
+          criterion: "语言自然，不靠模板式金句推进",
+          weight: 2,
+          minimum_score: 3,
+        },
+        {
+          id: "continuity",
+          criterion: "人物、物件和时间状态前后一致",
+          weight: 2,
+          minimum_score: 4,
+        },
+      ],
+    },
+    followup_prompt: "去一下 AI 味，只输出修订后的正文。",
+  };
+
+  assert.doesNotThrow(() =>
+    validateEvalSuite({ skill_name: "article-to-truth", evals: [validCase] }),
+  );
+
+  assert.throws(
+    () => validateEvalSuite({
+      skill_name: "article-to-truth",
+      evals: [{
+        ...validCase,
+        quality_rubric: {
+          ...validCase.quality_rubric,
+          dimensions: [
+            validCase.quality_rubric.dimensions[0],
+            validCase.quality_rubric.dimensions[0],
+          ],
+        },
+      }],
+    }),
+    /duplicate dimension id/,
+  );
+
+  assert.throws(
+    () => validateEvalSuite({
+      skill_name: "article-to-truth",
+      evals: [{ ...validCase, quality_rubric: undefined }],
+    }),
+    /followup_prompt requires quality_rubric/,
+  );
+
+  assert.throws(
+    () => validateEvalSuite({
+      skill_name: "article-to-truth",
+      evals: [{ ...validCase, followup_prompt: undefined }],
+    }),
+    /quality_rubric requires followup_prompt/,
+  );
+
+  assert.throws(
+    () => validateEvalSuite({
+      skill_name: "article-to-truth",
+      evals: [{
+        ...validCase,
+        quality_rubric: { ...validCase.quality_rubric, minimum_total_score: 101 },
+      }],
+    }),
+    /minimum_total_score must be between 0 and 100/,
+  );
+
+  assert.throws(
+    () => validateEvalSuite({
+      skill_name: "article-to-truth",
+      evals: [{
+        ...validCase,
+        quality_rubric: {
+          ...validCase.quality_rubric,
+          required_independent_reviewer_passes: 5,
+        },
+      }],
+    }),
+    /required_independent_reviewer_passes must be at most 4/,
+  );
+
+  assert.throws(
+    () => validateEvalSuite({
+      skill_name: "article-to-truth",
+      evals: [{
+        ...validCase,
+        quality_rubric: {
+          ...validCase.quality_rubric,
+          maximum_dimension_improvement: 5,
+        },
+      }],
+    }),
+    /maximum_dimension_improvement must be at most 4/,
+  );
+});
+
 test("evaluateRoutingResults compares every selected skill", () => {
   const routingSuite = {
     suite: "routing",

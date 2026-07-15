@@ -55,6 +55,62 @@ function requireNonNegativeInteger(value, label) {
   }
 }
 
+function requireNumberBetween(value, minimum, maximum, label) {
+  if (typeof value !== "number" || !Number.isFinite(value) || value < minimum || value > maximum) {
+    throw new Error(`${label} must be between ${minimum} and ${maximum}`);
+  }
+}
+
+function validateQualityRubric(rubric, label) {
+  requireObject(rubric, label);
+  requireNumberBetween(rubric.minimum_total_score, 0, 100, `${label}.minimum_total_score`);
+  requireNumberBetween(rubric.maximum_followup_gap, 0, 100, `${label}.maximum_followup_gap`);
+  if (rubric.maximum_dimension_improvement !== undefined) {
+    requireNonNegativeInteger(
+      rubric.maximum_dimension_improvement,
+      `${label}.maximum_dimension_improvement`,
+    );
+    if (rubric.maximum_dimension_improvement > 4) {
+      throw new Error(`${label}.maximum_dimension_improvement must be at most 4`);
+    }
+  }
+  if (rubric.required_independent_reviewer_passes !== undefined) {
+    requireNonNegativeInteger(
+      rubric.required_independent_reviewer_passes,
+      `${label}.required_independent_reviewer_passes`,
+    );
+    if (rubric.required_independent_reviewer_passes > 4) {
+      throw new Error(`${label}.required_independent_reviewer_passes must be at most 4`);
+    }
+  }
+  if (!Array.isArray(rubric.dimensions) || rubric.dimensions.length < 2 || rubric.dimensions.length > 8) {
+    throw new Error(`${label}.dimensions must contain between 2 and 8 items`);
+  }
+
+  const ids = new Set();
+  rubric.dimensions.forEach((dimension, index) => {
+    const dimensionLabel = `${label}.dimensions[${index}]`;
+    requireObject(dimension, dimensionLabel);
+    requireString(dimension.id, `${dimensionLabel}.id`);
+    if (!/^[a-z][a-z0-9_]*$/u.test(dimension.id)) {
+      throw new Error(`${dimensionLabel}.id must be an ASCII identifier`);
+    }
+    if (ids.has(dimension.id)) throw new Error(`${label} has duplicate dimension id: ${dimension.id}`);
+    ids.add(dimension.id);
+    requireString(dimension.criterion, `${dimensionLabel}.criterion`);
+    if (!Number.isInteger(dimension.weight) || dimension.weight < 1 || dimension.weight > 10) {
+      throw new Error(`${dimensionLabel}.weight must be an integer between 1 and 10`);
+    }
+    if (
+      !Number.isInteger(dimension.minimum_score) ||
+      dimension.minimum_score < 1 ||
+      dimension.minimum_score > 5
+    ) {
+      throw new Error(`${dimensionLabel}.minimum_score must be an integer between 1 and 5`);
+    }
+  });
+}
+
 function validateScope(scope, label) {
   if (scope === undefined) return;
   requireObject(scope, label);
@@ -183,6 +239,18 @@ function validateEvalCase(evalCase, label) {
   evalCase.assertions.forEach((assertion, index) =>
     validateAssertion(assertion, `${label}.assertions[${index}]`),
   );
+  if (evalCase.quality_rubric !== undefined) {
+    validateQualityRubric(evalCase.quality_rubric, `${label}.quality_rubric`);
+  }
+  if (evalCase.followup_prompt !== undefined) {
+    requireString(evalCase.followup_prompt, `${label}.followup_prompt`);
+    if (evalCase.quality_rubric === undefined) {
+      throw new Error(`${label}.followup_prompt requires quality_rubric`);
+    }
+  }
+  if (evalCase.quality_rubric !== undefined && evalCase.followup_prompt === undefined) {
+    throw new Error(`${label}.quality_rubric requires followup_prompt`);
+  }
 }
 
 export function validateEvalSuite(suite) {

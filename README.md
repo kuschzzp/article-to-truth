@@ -73,6 +73,7 @@ npx skills remove article-to-truth -g -y
 
 ```text
 帮我写一篇发生在县城旧书店里的短篇小说。
+帮我写一篇朱自清风格的散文，主题是孤独。
 给这段公众号开头做真实感评分，只指出问题，不要改写。
 把这段产品介绍改得自然一点，事实和数字不要动。
 先评测这篇稿子，再改写并给终稿复评。
@@ -91,7 +92,7 @@ npx skills remove article-to-truth -g -y
 
 | 模式 | 何时使用 | 默认输出 |
 |---|---|---|
-| Generation | 从零写文章、小说、故事、公众号、文案、脚本、邮件或报告 | 用户要求的正文 |
+| Generation | 从零写文章、小说、故事、公众号、文案、脚本、邮件或报告；文学任务进入 Literary Generation 子模式 | 用户要求的正文；文学任务只交付内部终改稿 |
 | Evaluation | 只检测已有文本 | 真实感评分、AI 味风险、pattern 证据和修改优先级 |
 | Rewrite | 只改写已有文本 | 终稿和必要的改动说明 |
 | Evaluation And Rewrite | 先评测、再改写、最后复评 | 原文评测、终稿和终稿复评 |
@@ -143,7 +144,11 @@ AI 味风险：低 / 较低 / 中 / 高 / 很高
 5. 默认输出终稿和必要的简短改动说明，不展示内部过程。
 6. 用 pattern 编号解释主要问题或改动。
 
-用于原创生成时，技能会先判断文体、声音、素材密度和高风险 pattern，再生成低模板感正文。短视频脚本会优先处理画面、旁白、字幕和节奏点；产品介绍会优先说明产品是什么、谁使用、解决哪一步问题和适用边界。
+用于原创生成时，技能会先区分实用写作和文学创作。短视频脚本、产品介绍、邮件和报告保持轻量生成；散文、随笔、散文诗、小说、故事、情感写作和作家风格参照会进入 Literary Generation。第一遍只作为内部草稿，随后复用 Rewrite 的 pattern 识别、初改、复审和终改流程。
+
+Codex 提供子代理能力时，文学终改候选会交给一个全新上下文的独立编辑代理。第一回合只审计原稿，列出带原句证据的残留问题、人物与物件状态账本和建议停笔位置；第二回合才根据审计一次性生成唯一终稿。它不会先写一版再审自己的版本，从而减少自我锚定和重写时引入的连续性错误。主代理交付前还会机械核对“只剩 / 全部 / 没有”等绝对范围、物件归属与位置，以及未完成动作中间是否插入无因果回忆。这通常会增加两个模型回合和相应等待，但能把“用户再说一次去 AI 味”的有效机制提前到首次交付。没有子代理能力、调用失败或超时时，技能自动回退到内部删法终审，安装与调用入口仍然只有一个 `article-to-truth`。
+
+文学全文审计重点检查主题负载、细节可替换性、解释冲动、叙事连续性和风格表面化，并额外核对数量与容器状态、执行结尾删除测试。它不会靠机械添加方言、错别字、无关琐事或年代道具制造“人味”。
 
 ## 仓库结构
 
@@ -154,6 +159,8 @@ skills/article-to-truth/
     ├── patterns.md                  # 44 个中文 AI 味 pattern
     ├── process.md                   # 评测与改写流程
     ├── generation.md                # 从零生成写作准则
+    ├── literary-generation.md       # 文学创作全文审计与首次成稿终改
+    ├── literary-reviewer.md         # 独立文学编辑代理契约
     ├── voice-calibration.md         # 作者声音校准
     ├── rubric.md                    # 100 分制评测量表
     └── examples.md                  # 前后对比和触发示例
@@ -173,7 +180,7 @@ evals/
 
 ## 测试集
 
-固定测试集位于 `evals/evals.json`。每个测试项用 `assertions` 检查评分方向、风险等级、pattern、事实词、日期、数字、否定边界和输出顺序。自然语言触发边界另见 `evals/trigger-routing.json`。
+固定测试集位于 `evals/evals.json`。每个测试项用 `assertions` 检查评分方向、风险等级、pattern、事实词、日期、数字、否定边界和输出顺序；文学用例还可以配置独立质量量表和首次稿/去 AI 味后续稿配对检查。自然语言触发边界另见 `evals/trigger-routing.json`。
 
 使用方式：
 
@@ -212,7 +219,13 @@ node scripts/model-regression.mjs --full --model gpt-5.6-sol --reasoning-effort 
 node scripts/model-regression.mjs --smoke --cases 1,2,15,16 --runs 1 --routing-runs 1 --reasoning-effort medium
 ```
 
-候选版质量门槛为：路由命中率至少 95%，负向路由和关键事实断言 100%，其他断言至少 95%，同一评分锚点多次运行的最大差值不超过 8 分。失败用例会显式调用 `$article-to-truth` 再跑一次，用于区分触发问题与 Skill 正文问题。
+文学首次成稿专项回归：
+
+```bash
+node scripts/model-regression.mjs --cases 13,17,18 --runs 3 --skip-routing --compare --model gpt-5.6-sol --reasoning-effort medium --baseline-ref <published-ref>
+```
+
+候选版质量门槛为：路由命中率至少 95%，负向路由和关键事实断言 100%，其他断言至少 95%，同一评分锚点多次运行的最大差值不超过 8 分。文学用例还要求首次稿和“去 AI 味”后续稿都通过分维度质量量表、后续请求自动激活 Skill、确定性断言全部通过，并限制两版质量差。失败用例会显式调用 `$article-to-truth` 再跑一次，用于区分触发问题与 Skill 正文问题。
 
 ## 安全边界
 
